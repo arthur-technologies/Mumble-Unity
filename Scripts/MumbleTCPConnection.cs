@@ -302,7 +302,7 @@ namespace Mumble
                         Debug.LogError("IO Exception: " + ex);
                         _mumbleClient.OnConnectionDisconnect();
                     }
-                   //These just means the app stopped, it's ok
+                    //These just means the app stopped, it's ok
                     else if (ex is ObjectDisposedException) { }
                     else if (ex is ThreadAbortException) { }
                     else

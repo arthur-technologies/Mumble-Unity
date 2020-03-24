@@ -22,7 +22,7 @@ public class MumbleTester : MonoBehaviour {
     public MumbleMicrophone MyMumbleMic;
     public DebugValues DebuggingVariables;
 
-    private MumbleClient _mumbleClient;
+    public MumbleClient _mumbleClient;
     public bool ConnectAsyncronously = true;
     public bool SendPosition = false;
     public string HostName = "1.2.3.4";
@@ -51,7 +51,9 @@ public class MumbleTester : MonoBehaviour {
             Username += UnityEngine.Random.Range(0, 100f);
 
         if (ConnectAsyncronously)
-            StartCoroutine(ConnectAsync());
+        {
+            //StartCoroutine(ConnectAsync());
+        }
         else
         {
             _mumbleClient.Connect(Username, Password);
@@ -94,13 +96,14 @@ public class MumbleTester : MonoBehaviour {
         posDataLength = 3 * sizeof(float);
         // The reverse method is in MumbleExamplePositionDisplay
     }
-    IEnumerator ConnectAsync()
+    public IEnumerator ConnectAsync()
     {
         while (!_mumbleClient.ReadyToConnect)
             yield return null;
         Debug.Log("Will now connect");
         _mumbleClient.Connect(Username, Password);
         yield return null;
+        _mumbleClient.JoinChannel(ChannelToJoin);
         if(MyMumbleMic != null)
         {
             _mumbleClient.AddMumbleMic(MyMumbleMic);

@@ -78,6 +78,7 @@ namespace Mumble
         public Action<uint> OnNewDecodeBufferThreaded;
         public Action<uint> OnRemovedDecodeBufferThreaded;
         public Action<uint> OnRecvAudioThreaded;
+        public Action<float[],int> OnRecvAudioDecodedThreaded;
         public Action<Channel> OnChannelAddedThreaded;
         public Action<Channel> OnChannelRemovedThreaded;
 
@@ -512,6 +513,8 @@ namespace Mumble
                 decodingBuffer.AddDecodedAudio(pcmData, numSamples, posData, reevaluateInitialBuffer);
                 if (OnRecvAudioThreaded != null)
                     OnRecvAudioThreaded(session);
+                if (OnRecvAudioDecodedThreaded != null)
+                    OnRecvAudioDecodedThreaded(pcmData, numSamples);
             }
             else
             {

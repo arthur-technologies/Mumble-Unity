@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using MumbleProto;
 
 namespace Mumble
@@ -42,6 +44,8 @@ namespace Mumble
             if (_pendingAudioVolume >= 0)
                 _audioSource.volume = _pendingAudioVolume;
             _pendingAudioVolume = -1f;
+            
+            this.bufferSamples = 20 * 48000 / 1000 + 1920 + 48000;
         }
         public string GetUsername()
         {
@@ -72,10 +76,22 @@ namespace Mumble
         }
         public void Initialize(MumbleClient mumbleClient, UInt32 session)
         {
-            //Debug.Log("Initialized " + session, this);
+            Debug.Log("Initialized " + session, this);
             Session = session;
             _mumbleClient = mumbleClient;
+            _mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
         }
+
+        private static Queue<Tuple<float[], int>> frameData = new Queue<Tuple<float[], int>>();
+        
+        private void OnRecvAudioDecodedThreaded(float[] data, int samples)
+        {
+            Debug.Log("OnRecvAudioDecodedThreaded = " +data.Length + " Samples: " + samples);
+            frameData.Enqueue(new Tuple<float[], int>(data, samples));
+            //this._audioSource.clip.SetData(data, this.streamSamplePos % samples);
+            //this.streamSamplePos += data.Length / 2;
+        }
+
         public void Reset()
         {
             _mumbleClient = null;
@@ -98,7 +114,7 @@ namespace Mumble
             if (OnAudioSample != null)
                 OnAudioSample(data, percentUnderrun);
 
-            //Debug.Log("playing audio with avg: " + data.Average() + " and max " + data.Max());
+            Debug.Log("playing audio with avg: " + data.Average() + " and max " + data.Max());
             if (Gain == 1)
                 return;
 
@@ -130,14 +146,22 @@ namespace Mumble
             else
                 _audioSource.volume = volume;
         }
+        
+        private int streamSamplePos = 0;
+        private int bufferSamples = 0;
+        float[] data = new float[1024];
         void Update()
         {
             if (_mumbleClient == null)
                 return;
             if (!_isPlaying && _mumbleClient.HasPlayableAudio(Session))
             {
-                _audioSource.Play();
                 _isPlaying = true;
+                this._audioSource.loop = true;
+                // using streaming clip leads to too long delays
+                this._audioSource.clip = AudioClip.Create("AudioStreamPlayer", bufferSamples, 2, 48000, false);
+                _audioSource.Play();
+                
                 Debug.Log("Playing audio for: " + GetUsername());
             }
             else if (_isPlaying && !_mumbleClient.HasPlayableAudio(Session))
@@ -146,6 +170,39 @@ namespace Mumble
                 _isPlaying = false;
                 Debug.Log("Stopping audio for: " + GetUsername());
             }
+            else if(_isPlaying && _mumbleClient.HasPlayableAudio(Session))
+            {
+
+                //this._audioSource.clip.GetData(data, streamSamplePos);
+                int numRead = _mumbleClient.LoadArrayWithVoiceData(Session, data, 0, data.Length);
+                float[] tempData = new float[numRead];
+                
+                Array.Copy(data,tempData,tempData.Length);
+                
+                //float percentUnderrun = 1f - numRead / data.Length;
+
+                //if (OnAudioSample != null)
+                //    OnAudioSample(data, percentUnderrun);
+               //while (frameData.Count > 0)
+                //{
+                    //var frame = frameData.Dequeue();
+                    if (numRead > 0)
+                    {
+                        //_mumbleClient.LoadArrayWithVoiceData(Session, frame.Item1, 0, frame.Item1.Length);
+                        this._audioSource.clip.SetData(tempData, this.streamSamplePos % bufferSamples);
+                        //this.streamSamplePos += data.Length;
+                        this.streamSamplePos += tempData.Length / this._audioSource.clip.channels;
+                        //Debug.Log("FameDequqed: " + frame.Item1.Length);
+                    }
+
+                    //}
+            }
+        }
+        
+        void OnAudioRead(float[] data)
+        {
+            Debug.Log("cubedata: " + data.Length);
+            OnAudioFilterRead(data,2);
         }
     }
 }

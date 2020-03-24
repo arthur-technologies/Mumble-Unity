@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4000010084468806}
   - component: {fileID: 114000010544730294}
   - component: {fileID: 82000010868889810}
+  - component: {fileID: 6669253110147612013}
   m_Layer: 0
   m_Name: MumbleAudioPlayerPrefab
   m_TagString: Untagged
@@ -69,7 +70,7 @@ AudioSource:
   MaxDistance: 500
   Pan2D: 0
   rolloffMode: 0
-  BypassEffects: 0
+  BypassEffects: 1
   BypassListenerEffects: 0
   BypassReverbZones: 0
   rolloffCustomCurve:
@@ -141,3 +142,15 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 0
+--- !u!114 &6669253110147612013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000010552747926}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 628657df2aeb64c488f7b564bae9ad4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

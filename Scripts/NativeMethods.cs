@@ -40,6 +40,7 @@ namespace Mumble
         const string pluginName = "__Internal";
 #else
         const string pluginName = "opus-1_3";
+        //const string pluginName = "libopus_egpv";
 #endif
 
         [DllImport(pluginName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]

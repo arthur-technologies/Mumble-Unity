@@ -85,11 +85,19 @@ namespace Mumble
             _mumbleClient = mumbleClient;
             //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
 
-            string userStateName = GetUsername();
-            UserId = userStateName.Split('_')[0];
-            UserName = userStateName.Split('_')[1];
+            var userStateName = GetUsername().Split('_');
+            if (userStateName.Length > 1)
+            {
+                UserId = userStateName[0];
+                UserName = userStateName[1];
+                StartCoroutine(AssignToMemeberPrefab());
+            }
+            else
+            {
+                UserName = userStateName[0];
+                UserId = null;
+            }
 
-            StartCoroutine(AssignToMemeberPrefab());
         }
 
         IEnumerator AssignToMemeberPrefab()

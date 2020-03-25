@@ -79,15 +79,15 @@ namespace Mumble
             Debug.Log("Initialized " + session, this);
             Session = session;
             _mumbleClient = mumbleClient;
-            _mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
+            //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
         }
 
         private static Queue<Tuple<float[], int>> frameData = new Queue<Tuple<float[], int>>();
         
         private void OnRecvAudioDecodedThreaded(float[] data, int samples)
         {
-            Debug.Log("OnRecvAudioDecodedThreaded = " +data.Length + " Samples: " + samples);
-            frameData.Enqueue(new Tuple<float[], int>(data, samples));
+            //Debug.Log("OnRecvAudioDecodedThreaded = " +data.Length + " Samples: " + samples);
+            //frameData.Enqueue(new Tuple<float[], int>(data, samples));
             //this._audioSource.clip.SetData(data, this.streamSamplePos % samples);
             //this.streamSamplePos += data.Length / 2;
         }
@@ -114,7 +114,7 @@ namespace Mumble
             if (OnAudioSample != null)
                 OnAudioSample(data, percentUnderrun);
 
-            Debug.Log("playing audio with avg: " + data.Average() + " and max " + data.Max());
+            //Debug.Log("playing audio with avg: " + data.Average() + " and max " + data.Max());
             if (Gain == 1)
                 return;
 
@@ -157,9 +157,11 @@ namespace Mumble
             if (!_isPlaying && _mumbleClient.HasPlayableAudio(Session))
             {
                 _isPlaying = true;
+                #if UNITY_EDITOR
                 this._audioSource.loop = true;
                 // using streaming clip leads to too long delays
                 this._audioSource.clip = AudioClip.Create("AudioStreamPlayer", bufferSamples, 2, 48000, false);
+                #endif
                 _audioSource.Play();
                 
                 Debug.Log("Playing audio for: " + GetUsername());
@@ -170,6 +172,7 @@ namespace Mumble
                 _isPlaying = false;
                 Debug.Log("Stopping audio for: " + GetUsername());
             }
+            #if UNITY_EDITOR
             else if(_isPlaying && _mumbleClient.HasPlayableAudio(Session))
             {
 
@@ -197,6 +200,7 @@ namespace Mumble
 
                     //}
             }
+            #endif
         }
         
         void OnAudioRead(float[] data)

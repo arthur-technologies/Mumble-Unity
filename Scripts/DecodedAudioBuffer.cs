@@ -139,11 +139,11 @@ namespace Mumble {
 
             int readCount = Math.Min(numInSample, count);
             Array.Copy(_currentPacket.PcmData, _currentPacket.ReadOffset, dst, dstOffset, readCount);
-            Debug.Log("We have: "
-                + _decodedCount + " samples decoded "
-                + numInSample + " samples in curr packet "
-                + _currentPacket.ReadOffset + " read offset "
-                + readCount + " numRead");
+            // Debug.Log("We have: "
+            //     + _decodedCount + " samples decoded "
+            //     + numInSample + " samples in curr packet "
+            //     + _currentPacket.ReadOffset + " read offset "
+                // + readCount + " numRead");
 
             Interlocked.Add(ref _decodedCount, -readCount);
             _currentPacket.ReadOffset += readCount;

@@ -46,7 +46,8 @@ public class MumbleTester : MonoBehaviour {
         _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
             DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
             SpeakerCreationMode.ALL, DebuggingVariables, posLength);
-
+        _mumbleClient.OnDisconnected = OnDisconnected;
+        
         if (DebuggingVariables.UseRandomUsername)
             Username += UnityEngine.Random.Range(0, 100f);
 
@@ -74,6 +75,13 @@ public class MumbleTester : MonoBehaviour {
         }
 #endif
     }
+
+    private void OnDisconnected()
+    {
+        isJoinedChannel = false;
+        isConnected = false;
+    }
+
     /// <summary>
     /// An example of how to serialize the positional data that you're interested in
     /// NOTE: this function, in the current implementation, is called regardless
@@ -96,14 +104,26 @@ public class MumbleTester : MonoBehaviour {
         posDataLength = 3 * sizeof(float);
         // The reverse method is in MumbleExamplePositionDisplay
     }
+
+    private bool isJoinedChannel = false;
+    private bool isConnected = false;
+    
     public IEnumerator ConnectAsync()
     {
+        if (isConnected)
+        {
+            isJoinedChannel = false;
+            yield return JoinChannel(ChannelToJoin);
+            yield break;
+        }
         while (!_mumbleClient.ReadyToConnect)
             yield return null;
         Debug.Log("Will now connect");
+        isConnected = true;
         _mumbleClient.Connect(Username, Password);
         yield return null;
-        _mumbleClient.JoinChannel(ChannelToJoin);
+        yield return JoinChannel(ChannelToJoin);
+        // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
         if(MyMumbleMic != null)
         {
             _mumbleClient.AddMumbleMic(MyMumbleMic);
@@ -112,6 +132,16 @@ public class MumbleTester : MonoBehaviour {
             MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
         }
     }
+
+    IEnumerator JoinChannel(string channel)
+    {
+        while (!isJoinedChannel)
+        {
+            isJoinedChannel = _mumbleClient.JoinChannel(channel);   
+            yield return new WaitForSeconds(1);
+        }
+    }
+    
     private MumbleAudioPlayer CreateMumbleAudioPlayerFromPrefab(string username, uint session)
     {
         // Depending on your use case, you might want to add the prefab to an existing object (like someone's head)
@@ -127,7 +157,7 @@ public class MumbleTester : MonoBehaviour {
     }
     private void OnOtherUserStateChange(uint session, MumbleProto.UserState updatedDeltaState, MumbleProto.UserState fullUserState)
     {
-        print("User #" + session + " had their user state change");
+        Debug.Log("User #" + session + " had their user state change");
         // Here we can do stuff like update a UI with users' current channel/mute etc.
     }
     private void DestroyMumbleAudioPlayer(uint session, MumbleAudioPlayer playerToDestroy)

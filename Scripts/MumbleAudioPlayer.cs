@@ -3,7 +3,9 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Arthur.Client.Controllers;
 using MumbleProto;
+using Sirenix.Utilities;
 
 namespace Mumble
 {
@@ -12,6 +14,8 @@ namespace Mumble
     {
 
         public float Gain = 1;
+        public string UserName;
+        public string UserId;
         public UInt32 Session { get; private set; }
         /// <summary>
         /// Notification that a new audio sample is available for processing
@@ -80,6 +84,33 @@ namespace Mumble
             Session = session;
             _mumbleClient = mumbleClient;
             //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
+
+            string userStateName = GetUsername();
+            UserId = userStateName.Split('_')[0];
+            UserName = userStateName.Split('_')[1];
+
+            StartCoroutine(AssignToMemeberPrefab());
+        }
+
+        IEnumerator AssignToMemeberPrefab()
+        {
+            while (true)
+            {
+                var memberItem = MeetingController.instance.GetMemberByUserId(UserId);
+
+                if (memberItem.SafeIsUnityNull())
+                {
+                    yield return new WaitForSeconds(1);
+                }
+                else
+                {
+                    Transform transform1;
+                    (transform1 = this.transform).SetParent(memberItem.transform);
+                    transform1.localPosition = Vector3.zero;
+                    transform1.localRotation = Quaternion.identity;
+                    yield break;
+                }
+            }
         }
 
         private static Queue<Tuple<float[], int>> frameData = new Queue<Tuple<float[], int>>();
@@ -163,6 +194,8 @@ namespace Mumble
                 this._audioSource.clip = AudioClip.Create("AudioStreamPlayer", bufferSamples, 2, 48000, false);
                 #endif
                 _audioSource.Play();
+                
+                
                 
                 Debug.Log("Playing audio for: " + GetUsername());
             }

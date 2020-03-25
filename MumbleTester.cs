@@ -45,7 +45,7 @@ public class MumbleTester : MonoBehaviour {
         int posLength = SendPosition ? 3 * sizeof(float) : 0;
         _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
             DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
-            SpeakerCreationMode.ALL, DebuggingVariables, posLength);
+            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength);
         _mumbleClient.OnDisconnected = OnDisconnected;
         
         if (DebuggingVariables.UseRandomUsername)

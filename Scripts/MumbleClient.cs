@@ -808,8 +808,7 @@ namespace Mumble
                 //Debug.Log("Sending disconnect");
                 EventProcessor.Instance.QueueEvent(() =>
                 {
-                    if (OnDisconnected != null)
-                        OnDisconnected();
+                    OnDisconnected?.Invoke();
                 });
             }
         }

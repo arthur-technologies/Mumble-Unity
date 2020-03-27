@@ -12,7 +12,7 @@ using UnityEditor;
 using System.Collections;
 using Mumble;
 
-public class MumbleTester : MonoBehaviour {
+public class ARMumbleController : MonoBehaviour {
 
     // Basic mumble audio player
     public GameObject MyMumbleAudioPlayerPrefab;
@@ -45,9 +45,8 @@ public class MumbleTester : MonoBehaviour {
         int posLength = SendPosition ? 3 * sizeof(float) : 0;
         _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
             DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
-            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength);
-        _mumbleClient.OnDisconnected = OnDisconnected;
-        
+            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength) {OnDisconnected = OnDisconnected};
+
         if (DebuggingVariables.UseRandomUsername)
             Username += UnityEngine.Random.Range(0, 100f);
 
@@ -80,6 +79,16 @@ public class MumbleTester : MonoBehaviour {
     {
         isJoinedChannel = false;
         isConnected = false;
+
+        if (!isAppClosing)
+        {
+            StartCoroutine(ConnectAsync());
+            Debug.Log("Reconnecting Mumble!");
+        }
+        else
+        {
+            Debug.Log("AppClosing, No Reconnect Mumble!");
+        }
     }
 
     /// <summary>
@@ -107,6 +116,7 @@ public class MumbleTester : MonoBehaviour {
 
     private bool isJoinedChannel = false;
     private bool isConnected = false;
+    private bool isAppClosing = false;
     
     public IEnumerator ConnectAsync()
     {
@@ -196,8 +206,8 @@ public class MumbleTester : MonoBehaviour {
     void OnApplicationQuit()
     {
         Debug.LogWarning("Shutting down connections");
-        if(_mumbleClient != null)
-            _mumbleClient.Close();
+        isAppClosing = true;
+        _mumbleClient?.Close();
     }
     IEnumerator UpdateEditorGraph()
     {

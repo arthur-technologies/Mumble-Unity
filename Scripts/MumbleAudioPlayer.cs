@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Arthur.Client.Controllers;
+using Arthur.Client.Controllers.Avatars;
 using MumbleProto;
 using Sirenix.Utilities;
 
@@ -25,6 +26,8 @@ namespace Mumble
         /// un-read
         /// </summary>
         public Action<float[], float> OnAudioSample;
+        
+        public bool IsPlaying => this._isPlaying;
 
         private MumbleClient _mumbleClient;
         private AudioSource _audioSource;
@@ -116,6 +119,7 @@ namespace Mumble
                     (transform1 = this.transform).SetParent(memberItem.transform);
                     transform1.localPosition = Vector3.zero;
                     transform1.localRotation = Quaternion.identity;
+                    memberItem.GetComponent<PlayerAvatarManager>().speaker = this;
                     yield break;
                 }
             }
@@ -233,12 +237,24 @@ namespace Mumble
                     if (numRead > 0)
                     {
                         //_mumbleClient.LoadArrayWithVoiceData(Session, frame.Item1, 0, frame.Item1.Length);
-                        this._audioSource.clip.SetData(tempData, this.streamSamplePos % bufferSamples);
+                        this._audioSource.clip.SetData(tempData, this.streamSamplePos % this._audioSource.clip.samples);
                         //this.streamSamplePos += data.Length;
                         this.streamSamplePos += tempData.Length / this._audioSource.clip.channels;
                         //Debug.Log("FameDequqed: " + frame.Item1.Length);
                     }
-
+                    else
+                    {
+                        /*float[] silence = new float[1]; 
+                        //Array.Clear(data,0,data.Length);
+                        this._audioSource.clip.SetData(silence, this.streamSamplePos % bufferSamples);
+                        this.streamSamplePos += silence.Length / this._audioSource.clip.channels;*/
+                        float[] emptyData = new float[bufferSamples / 2];
+                        for (int i = 0; i < emptyData.Length; i++)
+                            emptyData[i] = 0.0f;
+                        
+                        this._audioSource.clip.SetData(emptyData, this.streamSamplePos % this._audioSource.clip.samples);
+                        this.streamSamplePos += emptyData.Length / this._audioSource.clip.channels;
+                    }
                     //}
             }
             #endif

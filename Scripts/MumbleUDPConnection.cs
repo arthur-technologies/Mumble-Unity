@@ -283,9 +283,29 @@ namespace Mumble
                     }
                 }
                 NumPacketsSent++;
-            }catch(Exception e)
+            }catch(Exception ex)
             {
-                Debug.LogError("Error sending packet: " + e);
+                //Debug.LogError("Error sending packet: " + e);
+                if (ex is EndOfStreamException)
+                {
+                    Debug.LogError("EOS Exception: " + ex);//This happens when we connect again with the same username
+                    _mumbleClient.OnConnectionDisconnect();
+                }
+                else if (ex is IOException)
+                {
+                    Debug.LogError("IO Exception: " + ex);
+                    _mumbleClient.OnConnectionDisconnect();
+                }
+                //These just means the app stopped, it's ok
+                else if (ex is ObjectDisposedException) { }
+                else if (ex is ThreadAbortException) { }
+                else
+                {
+                    Debug.LogError("Unhandled error: " + ex);
+                    _mumbleClient.OnConnectionDisconnect();
+                }
+
+                return;
             }
         }
         internal byte[] GetLatestClientNonce()

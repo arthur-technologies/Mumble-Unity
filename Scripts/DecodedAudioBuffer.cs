@@ -42,7 +42,7 @@ namespace Mumble {
         /// How many incoming packets to buffer before audio begins to be played
         /// Higher values increase stability and latency
         /// </summary>
-        const int InitialSampleBuffer = 3;
+        const int InitialSampleBuffer = 5;
 
         public DecodedAudioBuffer(AudioDecodeThread audioDecodeThread)
         {

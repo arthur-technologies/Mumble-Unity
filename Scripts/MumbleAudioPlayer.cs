@@ -3,10 +3,13 @@ using System.Collections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
 using Arthur.Client.Controllers;
 using Arthur.Client.Controllers.Avatars;
 using MumbleProto;
 using Sirenix.Utilities;
+using UniRx;
+using UnityEngine.Serialization;
 
 namespace Mumble
 {
@@ -27,7 +30,7 @@ namespace Mumble
         /// </summary>
         public Action<float[], float> OnAudioSample;
         
-        public bool IsPlaying => this._isPlaying;
+        [FormerlySerializedAs("IsPlaying")] public bool IsSpeaking = false;
 
         private MumbleClient _mumbleClient;
         private AudioSource _audioSource;
@@ -47,12 +50,18 @@ namespace Mumble
             // call OnAudioFilterRead when the audioSource hits
             // Awake, even if PlayOnAwake is off
             _audioSource.Stop();
+            
+            this.bufferSamples = 20 * 48000 / 1000 + 1920 + 48000;
+#if UNITY_EDITOR
+            this._audioSource.loop = true;
+            // using streaming clip leads to too long delays
+            this._audioSource.clip = AudioClip.Create("AudioStreamPlayer", 480000, 2, 48000, false);
+#endif
 
             if (_pendingAudioVolume >= 0)
                 _audioSource.volume = _pendingAudioVolume;
             _pendingAudioVolume = -1f;
             
-            this.bufferSamples = 20 * 48000 / 1000 + 1920 + 48000;
         }
         public string GetUsername()
         {
@@ -81,12 +90,25 @@ namespace Mumble
                 return null;
             return state.Texture;
         }
+        
+        CompositeDisposable disposables = new CompositeDisposable();
         public void Initialize(MumbleClient mumbleClient, UInt32 session)
         {
             Debug.Log("Initialized " + session, this);
             Session = session;
             _mumbleClient = mumbleClient;
             //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
+            
+            Observable.FromEvent<Action<float[],int>,float[]>(
+                    h => (f, i) => h(f) , h => _mumbleClient.OnRecvAudioDecodedThreaded += h, h => _mumbleClient.OnRecvAudioDecodedThreaded -= h)
+                .ObserveOnMainThread()
+                .Subscribe(message =>
+                {
+                    CancelInvoke();
+                    IsSpeaking = true;
+                    Invoke(nameof(ResetIsSpeaking),1.0f);
+                })
+                .AddTo(disposables);
 
             var userStateName = GetUsername().Split('_');
             if (userStateName.Length > 1)
@@ -100,6 +122,8 @@ namespace Mumble
                 UserName = userStateName[0];
                 UserId = null;
             }
+            
+            ;
 
         }
 
@@ -133,6 +157,14 @@ namespace Mumble
             //frameData.Enqueue(new Tuple<float[], int>(data, samples));
             //this._audioSource.clip.SetData(data, this.streamSamplePos % samples);
             //this.streamSamplePos += data.Length / 2;
+            //CancelInvoke();
+            //IsSpeaking = true;
+            //Invoke(nameof(ResetIsSpeaking),1.0f);
+        }
+
+        void ResetIsSpeaking()
+        {
+            IsSpeaking = false;
         }
 
         public void Reset()
@@ -200,11 +232,7 @@ namespace Mumble
             if (!_isPlaying && _mumbleClient.HasPlayableAudio(Session))
             {
                 _isPlaying = true;
-                #if UNITY_EDITOR
-                this._audioSource.loop = true;
-                // using streaming clip leads to too long delays
-                this._audioSource.clip = AudioClip.Create("AudioStreamPlayer", bufferSamples, 2, 48000, false);
-                #endif
+               
                 _audioSource.Play();
                 
                 
@@ -236,19 +264,29 @@ namespace Mumble
                     //var frame = frameData.Dequeue();
                     if (numRead > 0)
                     {
+                        //if (!_audioSource.isPlaying)
+                        //{
+                        //    _audioSource.Play();
+                       // }
                         //_mumbleClient.LoadArrayWithVoiceData(Session, frame.Item1, 0, frame.Item1.Length);
                         this._audioSource.clip.SetData(tempData, this.streamSamplePos % this._audioSource.clip.samples);
                         //this.streamSamplePos += data.Length;
                         this.streamSamplePos += tempData.Length / this._audioSource.clip.channels;
                         //Debug.Log("FameDequqed: " + frame.Item1.Length);
+                        // if (!_audioSource.isPlaying)
+                        // {
+                        //     _audioSource.Play();
+                        // }
+
+                        //_audioSource.loop = true;
                     }
                     else
                     {
-                        /*float[] silence = new float[1]; 
+                        //float[] silence = new float[512]; 
                         //Array.Clear(data,0,data.Length);
-                        this._audioSource.clip.SetData(silence, this.streamSamplePos % bufferSamples);
-                        this.streamSamplePos += silence.Length / this._audioSource.clip.channels;*/
-                        float[] emptyData = new float[bufferSamples / 2];
+                        //this._audioSource.clip.SetData(silence, this.streamSamplePos % bufferSamples);
+                       // this.streamSamplePos += silence.Length / this._audioSource.clip.channels;
+                        float[] emptyData = new float[512];
                         for (int i = 0; i < emptyData.Length; i++)
                             emptyData[i] = 0.0f;
                         
@@ -264,6 +302,11 @@ namespace Mumble
         {
             Debug.Log("cubedata: " + data.Length);
             OnAudioFilterRead(data,2);
+        }
+        
+        private void OnDestroy()
+        {
+            disposables?.Dispose();
         }
     }
 }

@@ -279,9 +279,9 @@ namespace Mumble
                     }
 
                     //TODO should ClientNonce end in 0?
-                    if (_decryptHistory[_cryptSetup.ServerNonce[0]] == _cryptSetup.ClientNonce[1])
+                    if (_decryptHistory[_cryptSetup.ServerNonce[0]] == _cryptSetup.ClientNonce[0])
                     {
-                        Array.Copy(_dec_saveiv, 0, _cryptSetup.ServerNonce, 0, AES_BLOCK_SIZE);
+                        Array.ConstrainedCopy(_dec_saveiv, 0, _cryptSetup.ServerNonce, 0, AES_BLOCK_SIZE);
                         Debug.LogError("Crypt: 3");
                         return null;
                     }

@@ -48,6 +48,7 @@ MonoBehaviour:
   Gain: 1
   UserName: 
   UserId: 
+  IsSpeaking: 0
 --- !u!82 &82000010868889810
 AudioSource:
   m_ObjectHideFlags: 0
@@ -57,7 +58,8 @@ AudioSource:
   m_GameObject: {fileID: 1000010552747926}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: 24300001, guid: 4aba5bc97417e244f874ddd4011861c7,
+    type: 2}
   m_audioClip: {fileID: 0}
   m_PlayOnAwake: 0
   m_Volume: 1

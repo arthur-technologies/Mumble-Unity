@@ -59,7 +59,7 @@ public class ARMumbleController : MonoBehaviour {
             _mumbleClient.Connect(Username, Password);
             if(MyMumbleMic != null)
             {
-                _mumbleClient.AddMumbleMic(MyMumbleMic);
+                StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
                 if (SendPosition)
                     MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
             }
@@ -136,7 +136,7 @@ public class ARMumbleController : MonoBehaviour {
         // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
         if(MyMumbleMic != null)
         {
-            _mumbleClient.AddMumbleMic(MyMumbleMic);
+            StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
             if (SendPosition)
                 MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
             MyMumbleMic.OnMicDisconnect += OnMicDisconnected;

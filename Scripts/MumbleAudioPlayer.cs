@@ -99,14 +99,15 @@ namespace Mumble
             _mumbleClient = mumbleClient;
             //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
             
-            Observable.FromEvent<Action<float[],int>,float[]>(
-                    h => (f, i) => h(f) , h => _mumbleClient.OnRecvAudioDecodedThreaded += h, h => _mumbleClient.OnRecvAudioDecodedThreaded -= h)
+            Observable.FromEvent<Action<uint,float[],int>,uint>(
+                    h => (f, i,k) => h(f) , h => _mumbleClient.OnRecvAudioDecodedThreaded += h, h => _mumbleClient.OnRecvAudioDecodedThreaded -= h)
                 .ObserveOnMainThread()
-                .Subscribe(message =>
+                .Subscribe(sId =>
                 {
+                    if (sId != Session) return;
                     CancelInvoke();
                     IsSpeaking = true;
-                    Invoke(nameof(ResetIsSpeaking),1.0f);
+                    Invoke(nameof(ResetIsSpeaking), 1.0f);
                 })
                 .AddTo(disposables);
 

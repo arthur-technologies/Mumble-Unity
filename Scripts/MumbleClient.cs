@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Net;
 using MumbleProto;
 using Version = MumbleProto.Version;
@@ -78,7 +79,7 @@ namespace Mumble
         public Action<uint> OnNewDecodeBufferThreaded;
         public Action<uint> OnRemovedDecodeBufferThreaded;
         public Action<uint> OnRecvAudioThreaded;
-        public Action<float[],int> OnRecvAudioDecodedThreaded;
+        public Action<uint,float[],int> OnRecvAudioDecodedThreaded;
         public Action<Channel> OnChannelAddedThreaded;
         public Action<Channel> OnChannelRemovedThreaded;
 
@@ -225,15 +226,18 @@ namespace Mumble
             IPAddress[] addresses = Dns.EndGetHostAddresses(result);
             Init(addresses);
         }
-        public void AddMumbleMic(MumbleMicrophone newMic)
+        public IEnumerator AddMumbleMic(MumbleMicrophone newMic)
         {
             _mumbleMic = newMic;
             _mumbleMic.Initialize(this);
-            EncoderSampleRate = _mumbleMic.InitializeMic();
+            EncoderSampleRate = -1;
 
-            if (EncoderSampleRate == -1)
-                return;
-            
+            while (EncoderSampleRate == -1)
+            {
+                EncoderSampleRate = _mumbleMic.InitializeMic();
+                yield return new WaitForSeconds(1.0f);
+            }
+
             NumSamplesPerOutgoingPacket = MumbleConstants.NUM_FRAMES_PER_OUTGOING_PACKET * EncoderSampleRate / 100;
             _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
         }
@@ -514,7 +518,7 @@ namespace Mumble
                 if (OnRecvAudioThreaded != null)
                     OnRecvAudioThreaded(session);
                 if (OnRecvAudioDecodedThreaded != null)
-                    OnRecvAudioDecodedThreaded(pcmData, numSamples);
+                    OnRecvAudioDecodedThreaded(session, pcmData, numSamples);
             }
             else
             {

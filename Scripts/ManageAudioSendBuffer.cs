@@ -166,8 +166,8 @@ namespace Mumble
                         Debug.LogWarning("Empty Packet");
                         continue;
                     }
-                    if (isLastPacket)
-                        Debug.Log("Will send last packet");
+                    //if (isLastPacket)
+                        //Debug.Log("Will send last packet");
 
                     ArraySegment<byte> packet = buff.EncodedData;
 
@@ -183,7 +183,7 @@ namespace Mumble
                     if (isLastPacket)
                     {
                         opusHeaderNum += 8192;
-                        Debug.Log("Adding end flag");
+                        //Debug.Log("Adding end flag");
                     }
                     byte[] opusHeader = Var64.writeVarint64_alternative(opusHeaderNum);
                     //Packet:

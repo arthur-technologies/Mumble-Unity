@@ -237,7 +237,8 @@ namespace Mumble
                 EncoderSampleRate = _mumbleMic.InitializeMic();
                 yield return new WaitForSeconds(1.0f);
             }
-
+            _mumbleMic.StartSendingAudio(EncoderSampleRate);
+            
             NumSamplesPerOutgoingPacket = MumbleConstants.NUM_FRAMES_PER_OUTGOING_PACKET * EncoderSampleRate / 100;
             _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
         }

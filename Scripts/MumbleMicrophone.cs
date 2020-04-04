@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using UnityEngine.Android;
 
 namespace Mumble
 {
@@ -64,7 +65,7 @@ namespace Mumble
         public AudioClip SendAudioClip { get; private set; }
 
         private MumbleClient _mumbleClient;
-        private bool isRecording = false;
+        public bool isRecording = false;
         private string _currentMic;
         private int _previousPosition = 0;
         private int _totalNumSamplesSent = 0;
@@ -93,6 +94,11 @@ namespace Mumble
         /// <returns>New Mic's sample rate</returns>
         internal int InitializeMic()
         {
+            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            {
+                return -10; // no Permission
+            }
+            
             //Make sure the requested mic index exists
             if (Microphone.devices.Length <= MicNumberToUse)
             {
@@ -136,6 +142,11 @@ namespace Mumble
         }
         void SendVoiceIfReady()
         {
+            /*if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            {
+                StopSendingAudio();
+            }*/
+
             int currentPosition = Microphone.GetPosition(_currentMic);
             //Debug.Log(currentPosition + " " + Microphone.IsRecording(_currentMic));
 

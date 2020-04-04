@@ -10,6 +10,7 @@ using System;
 using UnityEditor;
 #endif
 using System.Collections;
+using Arthur.Client.Controllers;
 using Mumble;
 
 public class ARMumbleController : MonoBehaviour {
@@ -116,7 +117,7 @@ public class ARMumbleController : MonoBehaviour {
     }
 
     private bool isJoinedChannel = false;
-    private bool isConnected = false;
+    public bool isConnected = false;
     private bool isAppClosing = false;
     
     public IEnumerator ConnectAsync()
@@ -135,12 +136,21 @@ public class ARMumbleController : MonoBehaviour {
         yield return null;
         yield return JoinChannel(ChannelToJoin);
         // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
-        if(MyMumbleMic != null)
+        StartMicrophone();
+    }
+
+    public void StartMicrophone()
+    {
+        if(MyMumbleMic != null && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
         {
             StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
             if (SendPosition)
                 MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
             MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
+        }
+        else
+        {
+            Debug.LogError("Microphone Access not Granted, trying to Start Mic!");
         }
     }
 

@@ -236,6 +236,15 @@ namespace Mumble
             {
                 EncoderSampleRate = _mumbleMic.InitializeMic();
                 yield return new WaitForSeconds(1.0f);
+                if (EncoderSampleRate == -10) //no Permission to use Mic
+                {
+                    yield break;
+                }
+            }
+
+            if (EncoderSampleRate == 10)
+            {
+                yield break; // No Permission get Permission First
             }
             _mumbleMic.StartSendingAudio(EncoderSampleRate);
             

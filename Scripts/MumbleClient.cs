@@ -5,6 +5,7 @@ using MumbleProto;
 using Version = MumbleProto.Version;
 using UnityEngine;
 using System.Collections.Generic;
+using Arthur.Client.Controllers;
 
 namespace Mumble
 {
@@ -513,11 +514,12 @@ namespace Mumble
             if (OurUserState == null
                 || OurUserState.Mute)
             {
+                ArNotificationManager.Instance.FadeInMutedImage();
                 floatData.UnRef();
                 return;
             }
-            if(_manageSendBuffer != null)
-                _manageSendBuffer.SendVoice(floatData, SpeechTarget.Normal, 0);
+
+            _manageSendBuffer?.SendVoice(floatData, SpeechTarget.Normal, 0);
         }
         public void ReceiveDecodedVoice(UInt32 session, float[] pcmData, int numSamples, byte[] posData, bool reevaluateInitialBuffer)
         {

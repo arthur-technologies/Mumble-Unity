@@ -94,7 +94,7 @@ namespace Mumble
         /// <returns>New Mic's sample rate</returns>
         internal int InitializeMic()
         {
-            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            if (!AndroidPermissionsManager.IsPermissionGranted(Permission.Microphone))
             {
                 return -10; // no Permission
             }

@@ -94,10 +94,17 @@ namespace Mumble
         /// <returns>New Mic's sample rate</returns>
         internal int InitializeMic()
         {
+            #if !UNITY_ANDROID || UNITY_EDITOR
+            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            {
+                return -10; // no Permission
+            }
+            #else
             if (!AndroidPermissionsManager.IsPermissionGranted(Permission.Microphone))
             {
                 return -10; // no Permission
             }
+            #endif
             
             //Make sure the requested mic index exists
             if (Microphone.devices.Length <= MicNumberToUse)

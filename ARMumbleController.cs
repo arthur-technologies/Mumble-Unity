@@ -183,7 +183,10 @@ public class ARMumbleController : MonoBehaviour {
     }
     private void DestroyMumbleAudioPlayer(uint session, MumbleAudioPlayer playerToDestroy)
     {
-        UnityEngine.GameObject.Destroy(playerToDestroy.gameObject);
+        if (playerToDestroy != null)
+        {
+            Destroy(playerToDestroy.gameObject);
+        }
     }
     private void OnMicDisconnected()
     {

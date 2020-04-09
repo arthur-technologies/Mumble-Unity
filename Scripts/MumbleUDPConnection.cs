@@ -113,10 +113,23 @@ namespace Mumble
                     prevPacketSize = readLen;
                 }catch(Exception ex)
                 {
-                    if (ex is ObjectDisposedException) { return; }
-                    else if (ex is ThreadAbortException) { return; }
+                    if (ex is ObjectDisposedException)
+                    {
+                        Debug.LogError("ObjectDisposedException error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                        return;
+                    }
+                    else if (ex is ThreadAbortException)
+                    {
+                        Debug.LogError("ThreadAbortException error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                        return;
+                    }
                     else
+                    {
                         Debug.LogError("Unhandled UDP receive error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                    }
                 }
             }
         }

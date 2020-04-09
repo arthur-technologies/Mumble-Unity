@@ -60,7 +60,6 @@ public class ARMumbleController : MonoBehaviour {
             _mumbleClient.Connect(Username, Password);
             if(MyMumbleMic != null)
             {
-                //TODO: Better to Call Microphone.devices[MicNumberToUse]; is preloader scene to get permission and not use Coroutine here
                 StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
                 if (SendPosition)
                     MyMumbleMic.SetPositionalDataFunction(WritePositionalData);

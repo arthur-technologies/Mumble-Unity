@@ -46,7 +46,11 @@ public class ARMumbleController : MonoBehaviour {
         int posLength = SendPosition ? 3 * sizeof(float) : 0;
         _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
             DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
-            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength) {OnDisconnected = OnDisconnected};
+            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength)
+        {
+            OnDisconnected = OnDisconnected,
+            OnConnected = OnConnected
+        };
 
         if (DebuggingVariables.UseRandomUsername)
             Username += UnityEngine.Random.Range(0, 100f);
@@ -74,6 +78,14 @@ public class ARMumbleController : MonoBehaviour {
             StartCoroutine(UpdateEditorGraph());
         }
 #endif
+    }
+    
+    private void OnConnected()
+    {
+        //isJoinedChannel = false;
+        isConnected = true;
+
+        StartMicrophone();
     }
 
     private void OnDisconnected()
@@ -130,12 +142,15 @@ public class ARMumbleController : MonoBehaviour {
         while (!_mumbleClient.ReadyToConnect)
             yield return null;
         Debug.Log("Will now connect");
-        isConnected = true;
+        //isConnected = true;
         _mumbleClient.Connect(Username, Password);
         yield return null;
         yield return JoinChannel(ChannelToJoin);
         // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
-        StartMicrophone();
+        //if (!MyMumbleMic.isRecording)
+        //{
+        //    StartMicrophone();
+        //}
     }
 
     public void StartMicrophone()
@@ -177,7 +192,7 @@ public class ARMumbleController : MonoBehaviour {
     }
     private void OnOtherUserStateChange(uint session, MumbleProto.UserState updatedDeltaState, MumbleProto.UserState fullUserState)
     {
-        Debug.Log("User #" + session + " had their user state change");
+        Debug.Log("User #" + session + " had their user state change: " );
         // Here we can do stuff like update a UI with users' current channel/mute etc.
     }
     private void DestroyMumbleAudioPlayer(uint session, MumbleAudioPlayer playerToDestroy)

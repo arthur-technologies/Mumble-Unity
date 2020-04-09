@@ -297,8 +297,17 @@ namespace Mumble
                     _mumbleClient.OnConnectionDisconnect();
                 }
                 //These just means the app stopped, it's ok
-                else if (ex is ObjectDisposedException) { }
-                else if (ex is ThreadAbortException) { }
+                else if (ex is ObjectDisposedException) 
+                { 
+                    Debug.LogError("ObjectDisposedException: " + ex);
+                    _mumbleClient.OnConnectionDisconnect();
+                    
+                }
+                else if (ex is ThreadAbortException)
+                {
+                    Debug.LogError("ThreadAbortException: " + ex);
+                    _mumbleClient.OnConnectionDisconnect();
+                }
                 else
                 {
                     Debug.LogError("Unhandled error: " + ex);

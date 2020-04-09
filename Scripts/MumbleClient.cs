@@ -75,6 +75,8 @@ namespace Mumble
         /// call Connect()
         /// </summary>
         public delegate void OnDisconnectedMethod();
+        
+        public delegate void OnConnectedMethod();
 
         // Actions for non-main threaded events
         public Action<uint> OnNewDecodeBufferThreaded;
@@ -86,6 +88,7 @@ namespace Mumble
 
         public OnChannelChangedMethod OnChannelChanged;
         public OnDisconnectedMethod OnDisconnected;
+        public OnDisconnectedMethod OnConnected;
         private MumbleTcpConnection _tcpConnection;
         private MumbleUdpConnection _udpConnection;
         private DecodingBufferPool _decodingBufferPool;
@@ -797,6 +800,19 @@ namespace Mumble
                 return _udpConnection.GetLatestClientNonce();
             return null;
         }
+
+        internal void OnConnectionConnected()
+        {
+            if (OnConnected != null)
+            {
+                //Debug.Log("Sending disconnect");
+                EventProcessor.Instance.QueueEvent(() =>
+                {
+                    OnConnected?.Invoke();
+                });
+            }
+        }
+
         internal void OnConnectionDisconnect()
         {
             Debug.LogError("Mumble connection disconnected");

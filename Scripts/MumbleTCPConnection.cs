@@ -62,6 +62,7 @@ namespace Mumble
             if (!_tcpClient.Connected)
             {
                 Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct");
+                _mumbleClient.OnConnectionDisconnect();
                 throw new Exception("Failed to connect");
             }
             
@@ -233,6 +234,7 @@ namespace Mumble
                                 PrefixStyle.Fixed32BigEndian, 0);
                             //Debug.Log("Sever config = " + _mumbleClient.ServerConfig);
                             Debug.Log("Mumble is Connected");
+                            _mumbleClient.OnConnectionConnected();
                             _validConnection = true; // handshake complete
                             break;
                         case MessageType.SuggestConfig:
@@ -309,10 +311,22 @@ namespace Mumble
                         _mumbleClient.OnConnectionDisconnect();
                     }
                     //These just means the app stopped, it's ok
-                    else if (ex is ObjectDisposedException) { }
-                    else if (ex is ThreadAbortException) { }
+                    else if (ex is ObjectDisposedException)
+                    {
+                        Debug.LogError("ObjectDisposedException error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                    }
+                    else if (ex is ThreadAbortException)
+                    {
+                        Debug.LogError("ThreadAbortException error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                    }
                     else
+                    {
                         Debug.LogError("Unhandled error: " + ex);
+                        _mumbleClient.OnConnectionDisconnect();
+                    }
+
                     return;
                 }
             }

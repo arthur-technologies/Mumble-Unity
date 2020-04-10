@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Arthur.Client.Controllers;
 using UnityEngine.Android;
 
 namespace Mumble
@@ -209,12 +210,16 @@ namespace Mumble
                     if (AmplitudeHigherThan(MinAmplitude, newData.Pcm))
                     {
                         _sampleNumberOfLastMinAmplitudeVoice = _totalNumSamplesSent;
-                        if (OnMicData != null)
-                            OnMicData(newData);
+                        OnMicData?.Invoke(newData);
                         if (_writePositionalDataFunc != null)
+                        {
                             _writePositionalDataFunc(ref newData.PositionalData, ref newData.PositionalDataLength);
+                        }
                         else
+                        {
                             newData.PositionalDataLength = 0;
+                        }
+                        ArNotificationManager.Instance.FadeInMutedImage();
                         _mumbleClient.SendVoicePacket(newData);
                     }
                     else
@@ -224,8 +229,8 @@ namespace Mumble
                             newData.UnRef();
                             continue;
                         }
-                        if (OnMicData != null)
-                            OnMicData(newData);
+
+                        OnMicData?.Invoke(newData);
                         if (_writePositionalDataFunc != null)
                             _writePositionalDataFunc(ref newData.PositionalData, ref newData.PositionalDataLength);
                         else

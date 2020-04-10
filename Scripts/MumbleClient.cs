@@ -517,10 +517,14 @@ namespace Mumble
             if (OurUserState == null
                 || OurUserState.Mute)
             {
-                ArNotificationManager.Instance.FadeInMutedImage();
                 floatData.UnRef();
                 return;
             }
+
+            /*if (OurUserState.SelfMute)
+            {
+                ArNotificationManager.Instance.FadeInMutedImage();
+            }*/
 
             _manageSendBuffer?.SendVoice(floatData, SpeechTarget.Normal, 0);
         }

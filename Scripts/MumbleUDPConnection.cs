@@ -197,7 +197,9 @@ namespace Mumble
                 //Debug.Log("Seq = " + sequence + " Ses: " + session + " Size " + size + " type= " + typeByte + " tar= " + target);
                 bool isLast = (size & 8192) == 8192;
                 if (isLast)
-                    Debug.Log("Found last byte in seq");
+                {
+                    //Debug.Log("Found last byte in seq");
+                }
 
                 //Apply a bitmask to remove the bit that marks if this is the last packet
                 size &= 0x1fff;

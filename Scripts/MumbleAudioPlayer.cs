@@ -238,13 +238,13 @@ namespace Mumble
                 
                 
                 
-                Debug.Log("Playing audio for: " + GetUsername());
+                //Debug.Log("Playing audio for: " + GetUsername());
             }
             else if (_isPlaying && !_mumbleClient.HasPlayableAudio(Session))
             {
                 _audioSource.Stop();
                 _isPlaying = false;
-                Debug.Log("Stopping audio for: " + GetUsername());
+                //Debug.Log("Stopping audio for: " + GetUsername());
             }
             #if UNITY_EDITOR
             else if(_isPlaying && _mumbleClient.HasPlayableAudio(Session))

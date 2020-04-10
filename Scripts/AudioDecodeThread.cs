@@ -184,7 +184,7 @@ namespace Mumble {
                 // If new packet is VERY late, then the sequence number has probably reset
                 if(seqDiff < -MaxMissingPackets)
                 {
-                    Debug.Log("Sequence has possibly reset diff = " + seqDiff);
+                    //Debug.Log("Sequence has possibly reset diff = " + seqDiff);
                     decoderState.Decoder.ResetState();
                     reevaluateInitialBuffer = true;
                 }
@@ -197,19 +197,19 @@ namespace Mumble {
                 // If the sequence number changes abruptly (which happens with push to talk)
                 else if (seqDiff > MaxMissingPackets)
                 {
-                    Debug.Log("Mumble packet sequence changed abruptly pkt: " + sequence + " last: " + decoderState.LastReceivedSequence);
+                    //Debug.Log("Mumble packet sequence changed abruptly pkt: " + sequence + " last: " + decoderState.LastReceivedSequence);
                     reevaluateInitialBuffer = true;
                 }
                 // If the packet is a bit late, drop it
                 else if (seqDiff < 0 && !isLast)
                 {
-                    Debug.LogWarning("Received old packet " + sequence + " expecting " + decoderState.NextSequenceToDecode);
+                   // Debug.LogWarning("Received old packet " + sequence + " expecting " + decoderState.NextSequenceToDecode);
                     return;
                 }
                 // If we missed a packet, add a null packet to tell the decoder what happened
                 else if (seqDiff > 0)
                 {
-                    Debug.LogWarning("dropped packet, recv: " + sequence + ", expected " + decoderState.NextSequenceToDecode);
+                    //Debug.LogWarning("dropped packet, recv: " + sequence + ", expected " + decoderState.NextSequenceToDecode);
                     //NumPacketsLost += packet.Value.Sequence - _nextSequenceToDecode;
                     float[] emptyPcmBuffer = GetBufferToDecodeInto();
                     int emptySampleNumRead = decoderState.Decoder.Decode(null, emptyPcmBuffer);
@@ -250,7 +250,7 @@ namespace Mumble {
                 decoderState.NextSequenceToDecode = sequence + numRead / ((_outputSampleRate / 100) * _outputChannelCount);
             else
             {
-                Debug.Log("Resetting #" + session + " decoder");
+                //Debug.Log("Resetting #" + session + " decoder");
                 decoderState.NextSequenceToDecode = 0;
                 // Re-evaluate whether we need to fill up a buffer of audio before playing
                 //lock (_bufferLock)

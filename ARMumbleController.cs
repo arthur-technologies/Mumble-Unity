@@ -11,6 +11,7 @@ using UnityEditor;
 #endif
 using System.Collections;
 using Arthur.Client.Controllers;
+using ModestTree;
 using Mumble;
 
 public class ARMumbleController : MonoBehaviour {
@@ -84,7 +85,7 @@ public class ARMumbleController : MonoBehaviour {
     {
         //isJoinedChannel = false;
         isConnected = true;
-
+        StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
     }
 
@@ -143,9 +144,9 @@ public class ARMumbleController : MonoBehaviour {
             yield return null;
         Debug.Log("Will now connect");
         //isConnected = true;
+        yield return new WaitForEndOfFrame();
         _mumbleClient.Connect(Username, Password);
-        yield return null;
-        yield return JoinChannel(ChannelToJoin);
+       // yield return JoinChannel(ChannelToJoin);
         // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
         //if (!MyMumbleMic.isRecording)
         //{

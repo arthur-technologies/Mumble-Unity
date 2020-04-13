@@ -33,6 +33,16 @@ public class ARMumbleController : MonoBehaviour {
     public string Password = "1passwordHere!";
     public string ChannelToJoin = "";
 
+    private State _clientState = State.Disconnected;
+
+    private enum State
+    {
+        Connecting,
+        Connected,
+        Disconnected,
+        Reconnecting
+    }
+
 	void Start () {
 
         if(HostName == "1.2.3.4")
@@ -84,7 +94,7 @@ public class ARMumbleController : MonoBehaviour {
     private void OnConnected()
     {
         //isJoinedChannel = false;
-        isConnected = true;
+        _clientState = State.Connected;
         StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
     }
@@ -92,10 +102,11 @@ public class ARMumbleController : MonoBehaviour {
     private void OnDisconnected()
     {
         isJoinedChannel = false;
-        isConnected = false;
+        _clientState = State.Disconnected;
 
         if (!isAppClosing)
         {
+            _clientState = State.Reconnecting;
             StartCoroutine(ConnectAsync());
             Debug.Log("Reconnecting Mumble!");
         }
@@ -129,23 +140,71 @@ public class ARMumbleController : MonoBehaviour {
     }
 
     private bool isJoinedChannel = false;
-    public bool isConnected = false;
+    public bool IsConnected => _clientState == State.Connected;
+
     private bool isAppClosing = false;
+    
     
     public IEnumerator ConnectAsync()
     {
-        if (isConnected)
+        switch (_clientState)
+        {
+            case State.Connecting:
+                Debug.Log("Already in Connecting State--> mumble");
+                yield return null;
+                break;
+            case State.Connected:
+                isJoinedChannel = false;
+                yield return JoinChannel(ChannelToJoin);
+                break;
+            case State.Disconnected:
+                if (_mumbleClient != null)
+                {
+                    _clientState = State.Connecting;
+                    while (!_mumbleClient.ReadyToConnect)
+                        yield return null;
+                    Debug.Log("Will now connect");
+                    //yield return new WaitForEndOfFrame();
+                    _mumbleClient.Connect(Username, Password);
+                }
+                else
+                {
+                    Debug.Log("MumbleCLient Not Initialized yet");
+                }
+
+                break;
+            case State.Reconnecting:
+                yield return new WaitForSeconds(2.0f);
+                if (_mumbleClient != null)
+                {
+                    _clientState = State.Connecting;
+                    while (!_mumbleClient.ReadyToConnect)
+                        yield return null;
+                    Debug.Log("Will now Reconnect");
+                    //yield return new WaitForEndOfFrame();
+                    _mumbleClient.Connect(Username, Password);
+                }
+                else
+                {
+                    Debug.Log("MumbleCLient Not Initialized yet");
+                }
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        /*if (_clientState == State.Connected)
         {
             isJoinedChannel = false;
             yield return JoinChannel(ChannelToJoin);
             yield break;
         }
+        yield return new WaitForSeconds(1.0f);
         while (!_mumbleClient.ReadyToConnect)
             yield return null;
         Debug.Log("Will now connect");
         //isConnected = true;
         yield return new WaitForEndOfFrame();
-        _mumbleClient.Connect(Username, Password);
+        _mumbleClient.Connect(Username, Password);*/
        // yield return JoinChannel(ChannelToJoin);
         // isJoinedChannel = _mumbleClient.JoinChannel(ChannelToJoin);
         //if (!MyMumbleMic.isRecording)
@@ -232,6 +291,19 @@ public class ARMumbleController : MonoBehaviour {
             yield return new WaitForSeconds(2f);
         }
     }
+
+    private void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus)
+        {
+            _mumbleClient.Close();
+        }
+        else
+        {
+            StartCoroutine(ConnectAsync());
+        }
+    }
+
     void OnApplicationQuit()
     {
         Debug.LogWarning("Shutting down connections");

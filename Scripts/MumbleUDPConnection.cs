@@ -115,7 +115,7 @@ namespace Mumble
                     prevPacketSize = readLen;
                 }catch(Exception ex)
                 {
-                    _receiveThread.Abort();
+                    _receiveThread?.Abort();
                     if (ex is ObjectDisposedException)
                     {
                         Debug.LogError("ObjectDisposedException error: " + ex);

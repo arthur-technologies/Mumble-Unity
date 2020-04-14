@@ -296,7 +296,7 @@ public class ARMumbleController : MonoBehaviour {
     {
         if (pauseStatus)
         {
-            _mumbleClient.Close();
+            //_mumbleClient.Close();
         }
         else
         {

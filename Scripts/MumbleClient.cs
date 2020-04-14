@@ -483,17 +483,13 @@ namespace Mumble
         public void Close()
         {
             Debug.Log("Closing mumble");
-            if(_manageSendBuffer != null)
-                _manageSendBuffer.Dispose();
+            _manageSendBuffer?.Dispose();
             _manageSendBuffer = null;
-            if(_tcpConnection != null)
-                _tcpConnection.Close();
+            _tcpConnection?.Close();
             _tcpConnection = null;
-            if(_udpConnection != null)
-                _udpConnection.Close();
+            _udpConnection?.Close();
             _udpConnection = null;
-            if (_audioDecodeThread != null)
-                _audioDecodeThread.Dispose();
+            _audioDecodeThread?.Dispose();
             _audioDecodeThread = null;
             Debug.Log("Mumble closed");
         }

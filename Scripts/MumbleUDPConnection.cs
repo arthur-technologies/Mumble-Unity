@@ -1,11 +1,13 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Timers;
-using UnityEngine;
-using System.IO;
-using MumbleProto;
 using System.Threading;
+using System.Timers;
+using MumbleProto;
+using UnityEngine;
+using Object = System.Object;
+using Timer = System.Timers.Timer;
 
 namespace Mumble
 {
@@ -16,16 +18,16 @@ namespace Mumble
         private readonly UdpClient _udpClient;
         private readonly MumbleClient _mumbleClient;
         private readonly AudioDecodeThread _audioDecodeThread;
-        private readonly System.Object _sendLock = new System.Object();
+        private readonly Object _sendLock = new Object();
         private MumbleTcpConnection _tcpConnection;
         private CryptState _cryptState;
-        private System.Timers.Timer _udpTimer;
-        private bool _isConnected = false;
-        internal volatile int NumPacketsSent = 0;
-        internal volatile int NumPacketsRecv = 0;
-        internal volatile bool _useTcp = false;
+        private Timer _udpTimer;
+        private bool _isConnected;
+        internal volatile int NumPacketsSent;
+        internal volatile int NumPacketsRecv;
+        internal volatile bool _useTcp;
         // These are used for switching to TCP audio and back. Don't rely on them for anything else
-        private volatile int _numPingsOutstanding = 0;
+        private volatile int _numPingsOutstanding;
         private Thread _receiveThread;
         private byte[] _recvBuffer;
         private readonly byte[] _sendPingBuffer = new byte[9];
@@ -61,7 +63,7 @@ namespace Mumble
 
             _isConnected = true;
 
-            _udpTimer = new System.Timers.Timer(MumbleConstants.PING_INTERVAL_MS);
+            _udpTimer = new Timer(MumbleConstants.PING_INTERVAL_MS);
             _udpTimer.Elapsed += RunPing;
             _udpTimer.Enabled = true;
 
@@ -83,7 +85,7 @@ namespace Mumble
             if (_recvBuffer == null)
                 _recvBuffer = new byte[MaxUDPSize];
 
-            EndPoint endPoint = (EndPoint)_host;
+            EndPoint endPoint = _host;
             while (true)
             {
                 try
@@ -113,23 +115,24 @@ namespace Mumble
                     prevPacketSize = readLen;
                 }catch(Exception ex)
                 {
+                    _receiveThread.Abort();
                     if (ex is ObjectDisposedException)
                     {
                         Debug.LogError("ObjectDisposedException error: " + ex);
+                        
                         _mumbleClient.OnConnectionDisconnect();
                         return;
                     }
-                    else if (ex is ThreadAbortException)
+
+                    if (ex is ThreadAbortException)
                     {
                         Debug.LogError("ThreadAbortException error: " + ex);
                         _mumbleClient.OnConnectionDisconnect();
                         return;
                     }
-                    else
-                    {
-                        Debug.LogError("Unhandled UDP receive error: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
+
+                    Debug.LogError("Unhandled UDP receive error: " + ex);
+                    _mumbleClient.OnConnectionDisconnect();
                 }
             }
         }
@@ -258,11 +261,9 @@ namespace Mumble
 
         internal void Close()
         {
-            if (_receiveThread != null)
-                _receiveThread.Abort();
+            _receiveThread?.Abort();
             _receiveThread = null;
-            if(_udpTimer != null)
-                _udpTimer.Close();
+            _udpTimer?.Close();
             _udpTimer = null;
             _udpClient.Close();
         }
@@ -289,13 +290,11 @@ namespace Mumble
                     _tcpConnection.SendMessage(MessageType.UDPTunnel, udpMsg);
                     return;
                 }
-                else
+
+                byte[] encrypted = _cryptState.Encrypt(voicePacket, voicePacket.Length);
+                lock (_sendLock)
                 {
-                    byte[] encrypted = _cryptState.Encrypt(voicePacket, voicePacket.Length);
-                    lock (_sendLock)
-                    {
-                        _udpClient.Send(encrypted, encrypted.Length);
-                    }
+                    _udpClient.Send(encrypted, encrypted.Length);
                 }
                 NumPacketsSent++;
             }catch(Exception ex)
@@ -328,8 +327,6 @@ namespace Mumble
                     Debug.LogError("Unhandled error: " + ex);
                     _mumbleClient.OnConnectionDisconnect();
                 }
-
-                return;
             }
         }
         internal byte[] GetLatestClientNonce()

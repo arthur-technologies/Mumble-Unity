@@ -300,7 +300,10 @@ public class ARMumbleController : MonoBehaviour {
         }
         else
         {
-            StartCoroutine(ConnectAsync());
+            if (MeetingController.instance.currentMeeting != null)
+            {
+                StartCoroutine(ConnectAsync());
+            }
         }
     }
 

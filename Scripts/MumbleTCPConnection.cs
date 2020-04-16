@@ -318,7 +318,7 @@ namespace Mumble
                     }
                     else if (ex is ThreadAbortException)
                     {
-                        Debug.LogError("ThreadAbortException error: " + ex);
+                        //Debug.LogError("ThreadAbortException error: " + ex);
                         _mumbleClient.OnConnectionDisconnect();
                     }
                     else

@@ -174,7 +174,7 @@ public class ARMumbleController : MonoBehaviour {
 
                 break;
             case State.Reconnecting:
-                yield return new WaitForSeconds(2.0f);
+                //yield return new WaitForSeconds(2.0f);
                 if (_mumbleClient != null)
                 {
                     _clientState = State.Connecting;

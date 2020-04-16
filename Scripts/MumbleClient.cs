@@ -815,7 +815,7 @@ namespace Mumble
 
         internal void OnConnectionDisconnect()
         {
-            Debug.LogError("Mumble connection disconnected");
+            //Debug.LogError("Mumble connection disconnected");
             ReadyToConnect = false;
             ConnectionSetupFinished = false;
             OurUserState = null;

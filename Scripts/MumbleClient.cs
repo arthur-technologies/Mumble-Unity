@@ -422,7 +422,7 @@ namespace Mumble
                     OnRemovedDecodeBufferThreaded(session);
             }
         }
-        private void ReevaluateAllDecodingBuffers()
+        public void ReevaluateAllDecodingBuffers()
         {
             // TODO we should index more intelligently to speed this up
             foreach(KeyValuePair<uint, UserState> user in AllUsers)
@@ -433,6 +433,32 @@ namespace Mumble
                     TryRemoveDecodingBuffer(user.Key);
             }
         }
+        
+        public void ReevaluateADecodingBufferForUserSession(uint session)
+        {
+            // TODO we should index more intelligently to speed this up
+            var user = GetUserFromSession(session);
+            if (user != null)
+            {
+                if (ShouldAddAudioPlayerForUser(user))
+                    AddDecodingBuffer(user);
+                else
+                    TryRemoveDecodingBuffer(session);
+            }
+            else
+            {
+                Debug.LogError("UserNot Found for ReEvaluating decoding bffer");
+            }
+
+            /*foreach(KeyValuePair<uint, UserState> user in AllUsers)
+            {
+                if(ShouldAddAudioPlayerForUser(user.Value))
+                    AddDecodingBuffer(user.Value);
+                else
+                    TryRemoveDecodingBuffer(user.Key);
+            }*/
+        }
+        
         internal void SetServerSync(ServerSync sync)
         {
             ServerSync = sync;
@@ -568,9 +594,15 @@ namespace Mumble
             //TODO use bool to show if loading worked or not
             DecodedAudioBuffer decodingBuffer;
             if (_audioDecodingBuffers.TryGetValue(session, out decodingBuffer))
+            {
                 return decodingBuffer.Read(pcmArray, offset, length);
+            }
             else
+            {
+                ReevaluateADecodingBufferForUserSession(session);
                 Debug.LogWarning("Decode buffer not found for session " + session);
+            }
+
             return -1;
         }
         public bool LoadArraysWithPositions(UInt32 session, out byte[] previousPosData,

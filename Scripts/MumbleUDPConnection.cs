@@ -133,6 +133,7 @@ namespace Mumble
 
                     Debug.LogError("Unhandled UDP receive error: " + ex);
                     _mumbleClient.OnConnectionDisconnect();
+                    return;
                 }
             }
         }

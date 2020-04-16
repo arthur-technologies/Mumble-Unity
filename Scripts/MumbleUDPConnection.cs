@@ -121,19 +121,19 @@ namespace Mumble
                         Debug.LogError("ObjectDisposedException error: " + ex);
                         
                         _mumbleClient.OnConnectionDisconnect();
-                        return;
+                        break;
                     }
 
                     if (ex is ThreadAbortException)
                     {
                         //Debug.LogError("ThreadAbortException error: " + ex);
                         _mumbleClient.OnConnectionDisconnect();
-                        return;
+                        break;
                     }
 
                     Debug.LogError("Unhandled UDP receive error: " + ex);
                     _mumbleClient.OnConnectionDisconnect();
-                    return;
+                    break;
                 }
             }
         }

@@ -327,7 +327,7 @@ namespace Mumble
                         _mumbleClient.OnConnectionDisconnect();
                     }
 
-                    return;
+                    break;
                 }
             }
         }

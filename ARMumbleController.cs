@@ -337,6 +337,8 @@ public class ARMumbleController : MonoBehaviour {
         }
     }
 	void Update () {
+        
+        /*
         if (!_mumbleClient.ReadyToConnect)
             return;
         if (Input.GetKeyDown(KeyCode.S))
@@ -383,5 +385,7 @@ public class ARMumbleController : MonoBehaviour {
             Debug.Log("Decreasing bitrate " + currentBW + "->" + newBitrate);
             MyMumbleMic.SetBitrate(newBitrate);
         }
+        */
+        
     }
 }

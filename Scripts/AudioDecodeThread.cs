@@ -130,6 +130,7 @@ namespace Mumble {
                                 if (!_currentDecoders.TryGetValue(messageData.Session, out decoderState))
                                 {
                                     Debug.LogWarning("No DecoderState for session: " + messageData.Session);
+                                    _currentDecoders[messageData.Session] = new DecoderState();
                                     _mumbleClient.ReevaluateADecodingBufferForUserSession(messageData.Session);
                                     break;
                                 }

@@ -11,6 +11,7 @@ using UnityEditor;
 #endif
 using System.Collections;
 using Arthur.Client.Controllers;
+using Arthur.Common.Utilities;
 using ModestTree;
 using Mumble;
 
@@ -51,6 +52,9 @@ public class ARMumbleController : MonoBehaviour {
             return;
         }
         Application.runInBackground = true;
+        HostName = CommonConfigurations.MumbleUrl;
+        Port = CommonConfigurations.MumblePort;
+        Password = CommonConfigurations.MumblePassword;
         // If SendPosition, we'll send three floats.
         // This is roughly the standard for Mumble, however it seems that
         // Murmur supports more

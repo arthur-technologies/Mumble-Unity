@@ -94,7 +94,7 @@ namespace Mumble
         CompositeDisposable disposables = new CompositeDisposable();
         public void Initialize(MumbleClient mumbleClient, UInt32 session)
         {
-            Debug.Log("Initialized " + session, this);
+            Debug.Log("Initialized " + session + "userName: " + GetUsername() , this);
             Session = session;
             _mumbleClient = mumbleClient;
             //_mumbleClient.OnRecvAudioDecodedThreaded = OnRecvAudioDecodedThreaded;
@@ -111,21 +111,25 @@ namespace Mumble
                 })
                 .AddTo(disposables);
 
-            var userStateName = GetUsername().Split('_');
-            if (userStateName.Length > 1)
+            var userStateName = GetUsername()?.Split('_');
+            if (userStateName != null)
             {
-                UserId = userStateName[0];
-                UserName = userStateName[1];
-                StartCoroutine(AssignToMemeberPrefab());
+                if (userStateName.Length > 1)
+                {
+                    UserId = userStateName[0];
+                    UserName = userStateName[1];
+                    StartCoroutine(AssignToMemeberPrefab());
+                }
+                else
+                {
+                    UserName = userStateName[0];
+                    UserId = null;
+                }
             }
             else
             {
-                UserName = userStateName[0];
-                UserId = null;
+                Debug.LogError("Mumble-> Initialize-> GetUsername Null ");
             }
-            
-            ;
-
         }
 
         IEnumerator AssignToMemeberPrefab()

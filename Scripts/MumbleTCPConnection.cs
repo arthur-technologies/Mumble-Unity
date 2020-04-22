@@ -59,14 +59,14 @@ namespace Mumble
         }
         private void OnTcpConnected(IAsyncResult connectionResult)
         {
-            if (!_tcpClient.Connected)
+            if (_tcpClient == null || !_tcpClient.Connected)
             {
                 Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct");
                 _mumbleClient.OnConnectionDisconnect();
                 throw new Exception("Failed to connect");
             }
             
-            MyProto = (TypeModel) Activator.CreateInstance(Type.GetType("MyProtoModel, MyProtoModel"));
+            MyProto = (TypeModel) Activator.CreateInstance(Type.GetType("MyProtoModel, MyProtoModel") ?? throw new Exception("Failed to Create MyProtoModel Serailizer/Deserializer"));
 
             NetworkStream networkStream = _tcpClient.GetStream();
             _ssl = new SslStream(networkStream, false, ValidateCertificate);

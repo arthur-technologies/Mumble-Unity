@@ -124,13 +124,12 @@ namespace Mumble
         public void Dispose()
         {
             _isRunning = false;
-            _waitHandle.Set();
+            //if(_waitHandle != null)
+            _waitHandle?.Set();
 
-            if(_encodingThread != null)
-                _encodingThread.Abort();
+            _encodingThread?.Abort();
             _encodingThread = null;
-            if(_encoder != null)
-                _encoder.Dispose();
+            _encoder?.Dispose();
             _encoder = null;
         }
         private void EncodingThreadEntry()

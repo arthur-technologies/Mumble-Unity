@@ -249,8 +249,8 @@ namespace Mumble
 
             if(!_useTcp && _numPingsOutstanding >= MumbleConstants.MAX_CONSECUTIVE_MISSED_UDP_PINGS)
             {
-                Debug.LogWarning("Error establishing UDP connection, will switch to TCP");
-                _useTcp = true;
+                Debug.LogWarning("Error establishing UDP connection, will switch to TCP- Temp Disabled");
+                //_useTcp = true;
             }
             //Debug.Log(_numPingsSent - _numPingsReceived);
             _numPingsOutstanding++;

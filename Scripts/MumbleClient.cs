@@ -390,6 +390,12 @@ namespace Mumble
             {
                 //Debug.Log("Adding audioPlayer session #" + userState.Session);
                 // We also create a new audio player for the user
+                if(_mumbleAudioPlayers.TryGetValue(userState.Session, out var oldAudioPlayer))
+                {
+                    _mumbleAudioPlayers.Remove(userState.Session);
+                    _audioPlayerDestroyer(userState.Session, oldAudioPlayer);
+                }
+                
                 MumbleAudioPlayer newPlayer = _audioPlayerCreator(userState.Name, userState.Session);
                 _mumbleAudioPlayers.Add(userState.Session, newPlayer);
                 newPlayer.Initialize(this, userState.Session);
@@ -600,7 +606,7 @@ namespace Mumble
             else
             {
                 ReevaluateADecodingBufferForUserSession(session);
-                Debug.LogWarning("Decode buffer not found for session " + session);
+                Debug.LogWarning("Decode buffer not found for session " + session + " userName: " + GetUserFromSession(session)?.Name);
             }
 
             return -1;

@@ -251,6 +251,7 @@ namespace Mumble
             {
                 Debug.LogWarning("Error establishing UDP connection, will switch to TCP- Temp Disabled");
                 //_useTcp = true;
+                _mumbleClient.OnConnectionDisconnect();
             }
             //Debug.Log(_numPingsSent - _numPingsReceived);
             _numPingsOutstanding++;

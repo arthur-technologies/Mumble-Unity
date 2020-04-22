@@ -125,7 +125,10 @@ namespace Mumble
         {
             _isRunning = false;
             //if(_waitHandle != null)
-            _waitHandle?.Set();
+            if (_waitHandle?.SafeWaitHandle != null)
+            {
+                _waitHandle?.Set();
+            }
 
             _encodingThread?.Abort();
             _encodingThread = null;

@@ -158,8 +158,34 @@ public class ARMumbleController : MonoBehaviour {
                 yield return null;
                 break;
             case State.Connected:
-                isJoinedChannel = false;
-                yield return JoinChannel(ChannelToJoin);
+                string currentChannel;
+                try
+                {
+                    currentChannel = _mumbleClient.GetCurrentChannel();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Mumble Coonected GetCurrentChannel Exception: ");
+                    throw;
+                }
+
+                if (_mumbleClient != null && !currentChannel.Equals(ChannelToJoin))
+                {
+                    isJoinedChannel = false;
+                    yield return JoinChannel(ChannelToJoin);
+                    
+                    yield return new WaitForSeconds(1);
+                    _mumbleClient.SetSelfMute(true);
+                    _mumbleClient.SetSelfMute(false);
+                }
+                else
+                {
+                    Debug.LogError("Channel Already Joined");
+                    yield return new WaitForSeconds(1);
+                    _mumbleClient.SetSelfMute(true);
+                    _mumbleClient.SetSelfMute(false);
+                }
+                
                 break;
             case State.Disconnected:
                 if (_mumbleClient != null)

@@ -161,6 +161,31 @@ namespace Mumble
         {
             Dispose();
         }
+        
+        public unsafe int Encode(byte[] srcPcmSamples, int srcOffset, byte[] dstOutputBuffer, int dstOffset, int sampleCount)
+        {
+            if (srcPcmSamples == null) throw new ArgumentNullException("srcPcmSamples");
+            if (dstOutputBuffer == null) throw new ArgumentNullException("dstOutputBuffer");
+            if (!PermittedFrameSizes.Contains(sampleCount))
+                throw new Exception("Frame size is not permitted");
+            var readSize = _sampleSize*sampleCount;
+            if (srcOffset + readSize > srcPcmSamples.Length)
+                throw new Exception("Not enough samples in source");
+            var maxSizeBytes = dstOutputBuffer.Length - dstOffset;
+            int encodedLen;
+            fixed (byte* benc = dstOutputBuffer)
+            {
+                fixed (byte* bsrc = srcPcmSamples)
+                {
+                    var encodedPtr = IntPtr.Add(new IntPtr(benc), dstOffset);
+                    var pcmPtr = IntPtr.Add(new IntPtr(bsrc), srcOffset);
+                    encodedLen = NativeMethods.opus_encode_byte(_encoder, pcmPtr, sampleCount, encodedPtr, maxSizeBytes);
+                }
+            }
+            if (encodedLen < 0)
+                throw new Exception("Encoding failed - " + ((OpusErrors)encodedLen));
+            return encodedLen;
+        }
 
         public ArraySegment<byte> Encode(float[] pcmSamples)
         {

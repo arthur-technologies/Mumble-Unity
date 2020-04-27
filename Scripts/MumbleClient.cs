@@ -328,8 +328,10 @@ namespace Mumble
             // Create the audio player if the user is in the same room, and is not muted
             if(ShouldAddAudioPlayerForUser(userState))
             {
+                TryRemoveDecodingBuffer(userState.Session);
                 AddDecodingBuffer(userState);
-            }else
+            }
+            else
             {
                 // Otherwise remove the audio decoding buffer and audioPlayer if it exists
                 TryRemoveDecodingBuffer(userState.Session);
@@ -839,8 +841,11 @@ namespace Mumble
             return null;
         }
 
+        public bool IsConnected = false;
+
         internal void OnConnectionConnected()
         {
+            IsConnected = true;
             if (OnConnected != null)
             {
                 //Debug.Log("Sending disconnect");
@@ -853,33 +858,34 @@ namespace Mumble
 
         internal void OnConnectionDisconnect()
         {
-            //Debug.LogError("Mumble connection disconnected");
-            ReadyToConnect = false;
-            ConnectionSetupFinished = false;
-            OurUserState = null;
-            RemoteVersion = null;
-            CryptSetup = null;
-            ServerSync = null;
-            CodecVersion = null;
-            PermissionQuery = null;
-            ServerConfig = null;
-
-            EventProcessor.Instance.QueueEvent(() =>
+            if (IsConnected)
             {
-                // Reset the internal state
-                Close();
-                Debug.Log("Closed");
-                Init(_addresses);
-                Debug.Log("Init");
-            });
+                IsConnected = false;
+                //Debug.LogError("Mumble connection disconnected");
+                ReadyToConnect = false;
+                ConnectionSetupFinished = false;
+                OurUserState = null;
+                RemoteVersion = null;
+                CryptSetup = null;
+                ServerSync = null;
+                CodecVersion = null;
+                PermissionQuery = null;
+                ServerConfig = null;
 
-            if (OnDisconnected != null)
-            {
-                //Debug.Log("Sending disconnect");
                 EventProcessor.Instance.QueueEvent(() =>
                 {
-                    OnDisconnected?.Invoke();
+                    // Reset the internal state
+                    Close();
+                    Debug.Log("Closed");
+                    Init(_addresses);
+                    Debug.Log("Init");
                 });
+
+                if (OnDisconnected != null)
+                {
+                    //Debug.Log("Sending disconnect");
+                    EventProcessor.Instance.QueueEvent(() => { OnDisconnected?.Invoke(); });
+                }
             }
         }
         public static int GetNearestSupportedSampleRate(int listedRate)

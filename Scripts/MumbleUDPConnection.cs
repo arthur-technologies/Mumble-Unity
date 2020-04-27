@@ -176,7 +176,7 @@ namespace Mumble
             if (_useTcp)
             {
                 Debug.Log("Switching back to UDP");
-                _useTcp = false;
+                //_useTcp = false;
             }
         }
         internal void UnpackOpusVoicePacket(byte[] plainTextMessage, bool isLoopback)
@@ -250,8 +250,8 @@ namespace Mumble
             if(!_useTcp && _numPingsOutstanding >= MumbleConstants.MAX_CONSECUTIVE_MISSED_UDP_PINGS)
             {
                 Debug.LogWarning("Error establishing UDP connection, will switch to TCP- Temp Disabled");
-                //_useTcp = true;
-                _mumbleClient.OnConnectionDisconnect();
+                _useTcp = true;
+                //_mumbleClient.OnConnectionDisconnect();
             }
             //Debug.Log(_numPingsSent - _numPingsReceived);
             _numPingsOutstanding++;

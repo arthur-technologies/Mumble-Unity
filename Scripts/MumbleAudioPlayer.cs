@@ -118,7 +118,7 @@ namespace Mumble
                 {
                     UserId = userStateName[0];
                     UserName = userStateName[1];
-                    StartCoroutine(AssignToMemeberPrefab());
+                    StartCoroutine(AssignToMemberPrefab());
                 }
                 else
                 {
@@ -132,7 +132,7 @@ namespace Mumble
             }
         }
 
-        IEnumerator AssignToMemeberPrefab()
+        IEnumerator AssignToMemberPrefab()
         {
             while (true)
             {
@@ -287,6 +287,7 @@ namespace Mumble
                     }
                     else
                     {
+                        
                         //float[] silence = new float[512]; 
                         //Array.Clear(data,0,data.Length);
                         //this._audioSource.clip.SetData(silence, this.streamSamplePos % bufferSamples);

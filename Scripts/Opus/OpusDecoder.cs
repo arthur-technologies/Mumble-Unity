@@ -97,6 +97,20 @@ namespace Mumble
         {
             return NativeMethods.opus_decode(_decoder, packetData, floatBuffer, _outputSampleRate, _outputChannelCount);
         }
+        
+        public int Decode(byte[] srcEncodedBuffer, int srcOffset, int srcLength, byte[] dstBuffer, int dstOffset)
+        {
+            return NativeMethods.Decode(_decoder, srcEncodedBuffer, srcOffset, srcLength, dstBuffer, dstOffset,_outputChannelCount);
+        }
+        
+        public static unsafe int GetSamples(byte[] srcEncodedBuffer, int srcOffset, int srcLength, int sampleRate)
+        {
+            fixed (byte* bsrc = srcEncodedBuffer)
+            {
+                var srcPtr = IntPtr.Add(new IntPtr(bsrc), srcOffset);
+                return NativeMethods.opus_packet_get_nb_samples(srcPtr, srcLength, sampleRate);
+            }
+        }
 
         public static int GetChannels(byte[] srcEncodedBuffer)
         {

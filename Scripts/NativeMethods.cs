@@ -57,9 +57,15 @@ namespace Mumble
 
         [DllImport(pluginName, CallingConvention = CallingConvention.Cdecl)]
         private static extern int opus_encode_float(IntPtr st, float[] pcm, int frame_size, byte[] data, int max_data_bytes);
+        
+        [DllImport(pluginName, CallingConvention = CallingConvention.Cdecl)]
+        private static extern int opus_encode(IntPtr encoder, IntPtr pcm, int frameSize, IntPtr data, int maxDataBytes);
 
         [DllImport(pluginName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         internal static extern int opus_packet_get_nb_channels(byte[] encodedData);
+ 
+        [DllImport(pluginName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        internal static extern int opus_packet_get_nb_samples(IntPtr data, int len, int sampleRate);
 
         //Control the encoder
         // Used to get values
@@ -112,7 +118,34 @@ namespace Mumble
 
             return ptr;
         }
+        
+        /// <summary>
+        /// Max number of bytes per packet
+        /// from the Mumble protocol
+        /// </summary>
+        const int MaxPacketSize = 1020;
 
+        private byte[] _encodedPacket = new byte[MaxPacketSize];
+        
+        internal static int opus_encode_byte(IntPtr encoder, IntPtr pcmData, int frameSize, IntPtr encodedData, int maxSize)
+        {
+            if(encoder == IntPtr.Zero)
+            {
+                Debug.LogError("Encoder empty??");
+                return 0;
+            }
+
+            int byteLength = opus_encode(encoder, pcmData, frameSize, encodedData, maxSize);
+
+            if (byteLength <= 0)
+            {
+                Debug.LogError("Encoding error: " + (OpusErrors)byteLength);
+                //Debug.Log("Input = " + pcmData.Length);
+            }
+
+            return byteLength;
+        }
+        
         internal static int opus_encode(IntPtr encoder, float[] pcmData, int frameSize, byte[] encodedData)
         {
             if(encoder == IntPtr.Zero)
@@ -143,6 +176,36 @@ namespace Mumble
             error = NativeMethods.opus_decoder_init(ptr, sampleRate, channelCount);
             return ptr;
         }
+        
+        internal static int Decode(IntPtr decoder, byte[] srcEncodedBuffer, int srcOffset, int srcLength, byte[] dstBuffer, int dstOffset, int channelCount)
+        {
+            unsafe
+            {
+                var availableBytes = dstBuffer.Length - dstOffset;
+                var frameCount = availableBytes / channelCount;
+                int length;
+                fixed (byte* bdec = dstBuffer)
+                {
+                    var decodedPtr = IntPtr.Add(new IntPtr(bdec), dstOffset);
+                    if (srcEncodedBuffer != null)
+                    {
+                        fixed (byte* bsrc = srcEncodedBuffer)
+                        {
+                            var srcPtr = IntPtr.Add(new IntPtr(bsrc), srcOffset);
+                            length = NativeMethods.opus_decode(decoder, srcPtr, srcLength, decodedPtr, frameCount, 0);
+                        }
+                    }
+                    else
+                    {
+                        length = NativeMethods.opus_decode(decoder, IntPtr.Zero, 0, decodedPtr, frameCount, MumbleConstants.USE_FORWARD_ERROR_CORRECTION);
+                    }
+                }
+                if (length < 0)
+                    throw new Exception("Decoding failed - " + ((OpusErrors)length));
+                return length * channelCount;
+            }
+        }
+        
         internal static int opus_decode(IntPtr decoder, byte[] encodedData, float[] outputPcm, int channelRate, int channelCount)
         {
             if (decoder == IntPtr.Zero)

@@ -10,8 +10,11 @@ using System;
 using UnityEditor;
 #endif
 using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
 using Arthur.Client.Controllers;
 using Arthur.Common.Utilities;
+using MEC;
 using ModestTree;
 using Mumble;
 
@@ -33,6 +36,8 @@ public class ARMumbleController : MonoBehaviour {
     public string Username = "ExampleUser";
     public string Password = "1passwordHere!";
     public string ChannelToJoin = "";
+    
+    private Exception _updateLoopThreadException = null;
 
     private State _clientState = State.Disconnected;
 
@@ -66,7 +71,7 @@ public class ARMumbleController : MonoBehaviour {
             OnDisconnected = OnDisconnected,
             OnConnected = OnConnected
         };
-
+        
         if (DebuggingVariables.UseRandomUsername)
             Username += UnityEngine.Random.Range(0, 100f);
 
@@ -76,7 +81,17 @@ public class ARMumbleController : MonoBehaviour {
         }
         else
         {
-            _mumbleClient.Connect(Username, Password);
+            _mumbleClient.Connect(Username, Password, b =>
+            {
+                if (b)
+                {
+                    StartUpdateLoop();
+                }
+                else
+                {
+                    Debug.LogError("MumbleCline: TCP cannot connect");
+                }
+            });
             if(MyMumbleMic != null)
             {
                 StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
@@ -94,9 +109,55 @@ public class ARMumbleController : MonoBehaviour {
         }
 #endif
     }
-    
+
+    public void StartUpdateLoop()
+    {
+        ThreadStart updateLoopThreadStart = new ThreadStart(() => UpdateLoop(_mumbleClient, out _updateLoopThreadException));
+        updateLoopThreadStart += () => {
+            if (_updateLoopThreadException != null)
+            {
+                EventProcessor.Instance.QueueEvent(() =>
+                {
+                    ArNotificationManager.Instance.ShowAudioReconnectingPopup();
+                });
+                _mumbleClient.OnConnectionDisconnect();
+                Thread.Sleep(2000);
+                if (isAppClosing)
+                    return;
+                EventProcessor.Instance.QueueEvent(() =>
+                {
+                    speakerCount++;
+                    Timing.RunCoroutine(ConnectAsync());
+                });
+                throw new Exception($"{nameof(UpdateLoop)} was terminated unexpectedly because of a {_updateLoopThreadException.GetType().ToString()}", _updateLoopThreadException);
+            }
+        };
+        
+        Thread updateLoopThread = new Thread(updateLoopThreadStart) {IsBackground = true};
+        updateLoopThread.Start();
+    }
+    private void UpdateLoop(MumbleClient mumbleClient,out Exception exception)
+    {
+        exception = null;
+        try
+        {
+            while (_clientState != State.Disconnected)
+            {
+                if (mumbleClient.Process())
+                    Thread.Yield();
+                else
+                    Thread.Sleep(1);
+            }
+        } catch (Exception ex)
+        {
+            exception = ex;
+            Debug.LogError("UpdateLoop: Exception: " + ex.Message);
+        }
+    }
     private void OnConnected()
     {
+        Debug.LogError("OnConnected: : : ");
+        ArNotificationManager.Instance.HideAudioReconnectingPopup();
         //isJoinedChannel = false;
         _clientState = State.Connected;
         StartCoroutine( JoinChannel(ChannelToJoin));
@@ -111,7 +172,7 @@ public class ARMumbleController : MonoBehaviour {
         if (!isAppClosing)
         {
             _clientState = State.Reconnecting;
-            StartCoroutine(ConnectAsync());
+            // StartCoroutine(ConnectAsync());
             Debug.Log("Reconnecting Mumble!");
         }
         else
@@ -147,15 +208,15 @@ public class ARMumbleController : MonoBehaviour {
     public bool IsConnected => _clientState == State.Connected;
 
     private bool isAppClosing = false;
-    
-    
-    public IEnumerator ConnectAsync()
+
+    private int speakerCount = 0;
+    public IEnumerator<float> ConnectAsync()
     {
         switch (_clientState)
         {
             case State.Connecting:
                 Debug.Log("Already in Connecting State--> mumble");
-                yield return null;
+                yield return Timing.WaitForOneFrame;
                 break;
             case State.Connected:
                 string currentChannel;
@@ -172,18 +233,24 @@ public class ARMumbleController : MonoBehaviour {
                 if (_mumbleClient != null && !currentChannel.Equals(ChannelToJoin))
                 {
                     isJoinedChannel = false;
-                    yield return JoinChannel(ChannelToJoin);
+                    yield return Timing.WaitUntilDone(JoinChannel(ChannelToJoin));
                     
-                    yield return new WaitForSeconds(1);
-                    _mumbleClient.SetSelfMute(true);
-                    _mumbleClient.SetSelfMute(false);
+                    yield return Timing.WaitForSeconds(1);
+                    if (!_mumbleClient.IsSelfMuted())
+                    {
+                        _mumbleClient.SetSelfMute(true);
+                        _mumbleClient.SetSelfMute(false);
+                    }
                 }
                 else
                 {
                     Debug.LogError("Channel Already Joined");
-                    yield return new WaitForSeconds(1);
-                    _mumbleClient.SetSelfMute(true);
-                    _mumbleClient.SetSelfMute(false);
+                    yield return Timing.WaitForSeconds(1);
+                    if (!_mumbleClient.IsSelfMuted())
+                    {
+                        _mumbleClient.SetSelfMute(true);
+                        _mumbleClient.SetSelfMute(false);
+                    }
                 }
                 
                 break;
@@ -192,10 +259,22 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
-                        yield return null;
+                        yield return Timing.WaitForOneFrame;
                     Debug.Log("Will now connect");
                     //yield return new WaitForEndOfFrame();
-                    _mumbleClient.Connect(Username, Password);
+                    Username = Username.Split('-')[0] + "-" +speakerCount;
+                    _mumbleClient.Connect(Username, Password, b =>
+                    {
+                        if (b)
+                        {
+                            StartUpdateLoop();
+                        }
+                        else
+                        {
+                            StartUpdateLoop();
+                            Debug.LogError("MumbleClient: TCP Disconnected");
+                        }
+                    } );
                 }
                 else
                 {
@@ -209,10 +288,23 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
-                        yield return null;
+                        yield return Timing.WaitForOneFrame;
                     Debug.Log("Will now Reconnect");
                     //yield return new WaitForEndOfFrame();
-                    _mumbleClient.Connect(Username, Password);
+                    Username = Username.Split('-')[0] + "-" +speakerCount;
+                    _mumbleClient.Connect(Username, Password, b =>
+                    {
+                        if (b)
+                        {
+                            StartUpdateLoop();
+                        }
+                        else
+                        {
+                            StartUpdateLoop();
+                            Debug.LogError("MumbleClient: TCP Disconnected");
+                        }
+                    } );
+                    
                 }
                 else
                 {
@@ -258,12 +350,12 @@ public class ARMumbleController : MonoBehaviour {
         }
     }
 
-    IEnumerator JoinChannel(string channel)
+    IEnumerator<float> JoinChannel(string channel)
     {
         while (!isJoinedChannel)
         {
             isJoinedChannel = _mumbleClient.JoinChannel(channel);   
-            yield return new WaitForSeconds(1);
+            yield return Timing.WaitForSeconds(1);
         }
     }
     
@@ -332,7 +424,7 @@ public class ARMumbleController : MonoBehaviour {
         {
             if (MeetingController.instance.currentMeeting != null)
             {
-                StartCoroutine(ConnectAsync());
+                // StartCoroutine(ConnectAsync());
             }
         }
     }

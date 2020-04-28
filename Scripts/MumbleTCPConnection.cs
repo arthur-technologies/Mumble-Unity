@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using MumbleProto;
-using UnityEngine;
 using ProtoBuf;
 using System.Timers;
 using System.Threading;
 using System.Text;
 using ProtoBuf.Meta;
+using Debug = UnityEngine.Debug;
 using Version = MumbleProto.Version;
 
 namespace Mumble
@@ -31,7 +32,7 @@ namespace Mumble
         private Thread _processThread;
         private string _username;
         private string _password;
-
+        private NetworkStream networkStream;
         private TypeModel MyProto;
 
         internal MumbleTcpConnection(IPEndPoint host, string hostname, UpdateOcbServerNonce updateOcbServerNonce,
@@ -44,41 +45,45 @@ namespace Mumble
             _tcpClient = new TcpClient();
             _updateOcbServerNonce = updateOcbServerNonce;
             
-            _processThread = new Thread(ProcessTcpData)
-            {
-                IsBackground = true
-            };
+            // _processThread = new Thread(ProcessTcpData)
+            // {
+            //     IsBackground = true
+            // };
         }
 
-        internal void StartClient(string username, string password)
+        internal void StartClient(string username, string password, Action<bool> onConnected)
         {
             _username = username;
             _password = password;
-            _tcpClient.BeginConnect(_host.Address, _host.Port, new AsyncCallback(OnTcpConnected), null);
+            _tcpClient.BeginConnect(_host.Address, _host.Port, ar =>
+            {
+                onConnected(OnTcpConnected(ar));
+            }, null);
             //Debug.Log("Attempting to connect to " + _host);
         }
-        private void OnTcpConnected(IAsyncResult connectionResult)
+        private bool OnTcpConnected(IAsyncResult connectionResult)
         {
             try
             {
                 if (!_tcpClient.Connected)
                 {
                     Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct");
-                    _mumbleClient?.OnConnectionDisconnect();
+                    // _mumbleClient?.OnConnectionDisconnect();
                     throw new Exception("Failed to connect");
                 }
             } 
             catch (Exception e)
             {
                 Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct- > Exception caught");
-                _mumbleClient?.OnConnectionDisconnect();
+                // _mumbleClient?.OnConnectionDisconnect();
+                return false;
                 throw;
             }
             
 
             MyProto = (TypeModel) Activator.CreateInstance(Type.GetType("MyProtoModel, MyProtoModel") ?? throw new Exception("Failed to Create MyProtoModel Serailizer/Deserializer"));
 
-            NetworkStream networkStream = _tcpClient.GetStream();
+            networkStream = _tcpClient.GetStream();
             _ssl = new SslStream(networkStream, false, ValidateCertificate);
             _ssl.AuthenticateAsClient(_hostname);
             _reader = new BinaryReader(_ssl);
@@ -91,7 +96,8 @@ namespace Mumble
                     throw new TimeoutException("Time out waiting for SSL authentication");
             }
             SendVersion();
-            StartPingTimer();
+            //StartPingTimer();
+            return true;
         }
         private void SendVersion()
         {
@@ -111,51 +117,61 @@ namespace Mumble
             _tcpTimer = new System.Timers.Timer(MumbleConstants.PING_INTERVAL_MS);
             _tcpTimer.Elapsed += SendPing;
             _tcpTimer.Enabled = true; 
-            _processThread.Start();
+            // _processThread.Start();
         }
 
         internal void SendMessage<T>(MessageType mt, T message)
         {
-            lock (_ssl)
+            try
             {
-                //if (mt != MessageType.Ping && mt != MessageType.UDPTunnel)
-                    //Debug.Log("Sending " + mt + " message");
-                //_writer.Write(IPAddress.HostToNetworkOrder((Int16) mt));
-                //Serializer.SerializeWithLengthPrefix(_ssl, message, PrefixStyle.Fixed32BigEndian);
-                Int16 messageType = (Int16)mt;
 
-                // UDP Tunnels have their own way in which they handle serialization
-                if(mt == MessageType.UDPTunnel)
+
+                lock (_ssl)
                 {
-                    UDPTunnel udpTunnel = message as UDPTunnel;
-                    Int32 messageSize = (Int32)udpTunnel.Packet.Length;
-                    _writer.Write(IPAddress.HostToNetworkOrder(messageType));
-                    _writer.Write(IPAddress.HostToNetworkOrder(messageSize));
-                    _writer.Write(udpTunnel.Packet);
+                    //if (mt != MessageType.Ping && mt != MessageType.UDPTunnel)
+                    //Debug.Log("Sending " + mt + " message");
+                    //_writer.Write(IPAddress.HostToNetworkOrder((Int16) mt));
+                    //Serializer.SerializeWithLengthPrefix(_ssl, message, PrefixStyle.Fixed32BigEndian);
+                    Int16 messageType = (Int16) mt;
+
+                    // UDP Tunnels have their own way in which they handle serialization
+                    if (mt == MessageType.UDPTunnel)
+                    {
+                        UDPTunnel udpTunnel = message as UDPTunnel;
+                        Int32 messageSize = (Int32) udpTunnel.Packet.Length;
+                        _writer.Write(IPAddress.HostToNetworkOrder(messageType));
+                        _writer.Write(IPAddress.HostToNetworkOrder(messageSize));
+                        _writer.Write(udpTunnel.Packet);
+                    }
+                    else
+                    {
+                        MemoryStream messageStream = new MemoryStream();
+                        MyProto.Serialize(messageStream, message);
+                        //Serializer.NonGeneric.Serialize(messageStream, message);
+                        Int32 messageSize = (Int32) messageStream.Length;
+                        _writer.Write(IPAddress.HostToNetworkOrder(messageType));
+                        _writer.Write(IPAddress.HostToNetworkOrder(messageSize));
+                        messageStream.Position = 0;
+                        _writer.Write(messageStream.ToArray());
+                    }
+
+                    /*
+                    StringBuilder sb = new StringBuilder();
+                    byte[] msgArray = messageStream.ToArray();
+                    for (int i = 0; i < msgArray.Length; i++)
+                    {
+                        sb.Append(msgArray[i]);
+                        sb.Append(",");
+                    }
+                    Debug.Log(sb.ToString());
+                    */
+                    _writer.Flush();
                 }
-                else
-                {
-                    MemoryStream messageStream = new MemoryStream();
-                    MyProto.Serialize(messageStream,message);
-                    //Serializer.NonGeneric.Serialize(messageStream, message);
-                    Int32 messageSize = (Int32)messageStream.Length;
-                    _writer.Write(IPAddress.HostToNetworkOrder(messageType));
-                    _writer.Write(IPAddress.HostToNetworkOrder(messageSize));
-                    messageStream.Position = 0;
-                    _writer.Write(messageStream.ToArray());
-                }
-                
-                /*
-                StringBuilder sb = new StringBuilder();
-                byte[] msgArray = messageStream.ToArray();
-                for (int i = 0; i < msgArray.Length; i++)
-                {
-                    sb.Append(msgArray[i]);
-                    sb.Append(",");
-                }
-                Debug.Log(sb.ToString());
-                */
-                _writer.Flush();
+            }
+            catch
+            {
+                // 
+                throw;
             }
         }
 
@@ -166,20 +182,28 @@ namespace Mumble
             return true;
         }
 
-        private void ProcessTcpData()
+        public bool ProcessTcpData()
         {
+            if (!_tcpClient.Connected)
+                throw new InvalidOperationException("Not connected");
+            
+            if (!networkStream.DataAvailable)
+                return false;
+            
             // This thread is aborted in Close()
-            while (true)
+            // try
+            // {
+            lock (_ssl)
             {
+                var messageType = (MessageType) IPAddress.NetworkToHostOrder(_reader.ReadInt16());
+                //Debug.Log("Processing data of type: " + messageType);
                 try
                 {
-                    var messageType = (MessageType)IPAddress.NetworkToHostOrder(_reader.ReadInt16());
-                    //Debug.Log("Processing data of type: " + messageType);
-
                     switch (messageType)
                     {
                         case MessageType.Version:
-                            _mumbleClient.RemoteVersion = (Version) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(Version),
+                            _mumbleClient.RemoteVersion = (Version) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(Version),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             //Debug.Log("Server version: " + _mc.RemoteVersion.release);
                             var authenticate = new Authenticate
@@ -191,18 +215,21 @@ namespace Mumble
                             SendMessage(MessageType.Authenticate, authenticate);
                             break;
                         case MessageType.CryptSetup:
-                            var cryptSetup = (CryptSetup) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(CryptSetup),
+                            var cryptSetup = (CryptSetup) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(CryptSetup),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             ProcessCryptSetup(cryptSetup);
                             //Debug.Log("Got crypt");
                             break;
                         case MessageType.CodecVersion:
-                            _mumbleClient.CodecVersion = (CodecVersion) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(CodecVersion),
+                            _mumbleClient.CodecVersion = (CodecVersion) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(CodecVersion),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             //Debug.Log("Got codec version");
                             break;
                         case MessageType.ChannelState:
-                            ChannelState ChannelState = (ChannelState) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(ChannelState),
+                            ChannelState ChannelState = (ChannelState) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(ChannelState),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             /*
                             Debug.Log("Channel state Name = " + ChannelState.name);
@@ -215,14 +242,16 @@ namespace Mumble
                             _mumbleClient.AddChannel(ChannelState);
                             break;
                         case MessageType.PermissionQuery:
-                            _mumbleClient.PermissionQuery = (PermissionQuery) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(PermissionQuery),
+                            _mumbleClient.PermissionQuery = (PermissionQuery) MyProto.DeserializeWithLengthPrefix(_ssl,
+                                null, typeof(PermissionQuery),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             //Debug.Log("Permission Query = " + _mumbleClient.PermissionQuery.permissions);
                             //Debug.Log("Permission Channel = " + _mumbleClient.PermissionQuery.channel_id);
                             break;
                         case MessageType.UserState:
                             //This is called for every user in the room, including us
-                            UserState user = (UserState) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(UserState),
+                            UserState user = (UserState) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(UserState),
                                 PrefixStyle.Fixed32BigEndian, 0);
 
                             //Debug.Log("Name: " + user.Name);
@@ -235,12 +264,14 @@ namespace Mumble
                         case MessageType.ServerSync:
                             //This is where we get our session Id
                             //Debug.Log("Will server sync!");
-                            _mumbleClient.SetServerSync((ServerSync) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(ServerSync),
+                            _mumbleClient.SetServerSync((ServerSync) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(ServerSync),
                                 PrefixStyle.Fixed32BigEndian, 0));
                             //Debug.Log("Server Sync Session= " + _mumbleClient.ServerSync.session);
                             break;
                         case MessageType.ServerConfig:
-                            _mumbleClient.ServerConfig = (ServerConfig) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(ServerConfig),
+                            _mumbleClient.ServerConfig = (ServerConfig) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(ServerConfig),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             //Debug.Log("Sever config = " + _mumbleClient.ServerConfig);
                             Debug.Log("Mumble is Connected");
@@ -254,7 +285,8 @@ namespace Mumble
                                 PrefixStyle.Fixed32BigEndian, 0);
                             break;
                         case MessageType.TextMessage:
-                            TextMessage textMessage = (TextMessage) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(TextMessage),
+                            TextMessage textMessage = (TextMessage) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(TextMessage),
                                 PrefixStyle.Fixed32BigEndian, 0);
 
                             Debug.Log("Text message = " + textMessage.Message);
@@ -283,63 +315,51 @@ namespace Mumble
                                 PrefixStyle.Fixed32BigEndian, 0);
                             _validConnection = false;
                             Debug.LogError("Mumble server reject: " + reject.Reason);
-                            _mumbleClient.OnConnectionDisconnect();
+                            // _mumbleClient.OnConnectionDisconnect();
                             // The server connection is over, so we return
-                            return;
+                            return false;
                         case MessageType.UserRemove:
-                            var removal = (UserRemove) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(UserRemove),
+                            var removal = (UserRemove) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(UserRemove),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             Debug.Log("Removing " + removal.Session);
                             _mumbleClient.RemoveUser(removal.Session);
                             break;
                         case MessageType.ChannelRemove:
-                            var removedChan = (ChannelRemove) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(ChannelRemove),
+                            var removedChan = (ChannelRemove) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(ChannelRemove),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             _mumbleClient.RemoveChannel(removedChan.ChannelId);
                             Debug.Log("Removing channel " + removedChan.ChannelId);
                             break;
                         case MessageType.PermissionDenied:
-                            var denial = (PermissionDenied) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(PermissionDenied),
+                            var denial = (PermissionDenied) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                                typeof(PermissionDenied),
                                 PrefixStyle.Fixed32BigEndian, 0);
-                            Debug.LogError("Permission denied with fields Name: " + denial.Name + ", Type: " + denial.Type + ", Reason: " + denial.Reason);
+                            Debug.LogError("Permission denied with fields Name: " + denial.Name + ", Type: " +
+                                           denial.Type +
+                                           ", Reason: " + denial.Reason);
                             break;
+                        case MessageType.Authenticate:
+                        case MessageType.ContextActionModify:
+                        case MessageType.RequestBlob:
+                        case MessageType.VoiceTarget:
                         default:
-                            Debug.LogError("Message type " + messageType + " not implemented");
-                            break;
+                            throw new NotImplementedException(
+                                $"{nameof(Process)} {nameof(MessageType)}.{messageType.ToString()}");
+                        // default:
+                        //     Debug.LogError("Message type " + messageType + " not implemented");
+                        //     break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    if (ex is EndOfStreamException)
-                    {
-                        Debug.LogError("EOS Exception: " + ex);//This happens when we connect again with the same username
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
-                    else if (ex is IOException)
-                    {
-                        Debug.LogError("IO Exception: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
-                    //These just means the app stopped, it's ok
-                    else if (ex is ObjectDisposedException)
-                    {
-                        Debug.LogError("ObjectDisposedException error: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
-                    else if (ex is ThreadAbortException)
-                    {
-                        //Debug.LogError("ThreadAbortException error: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
-                    else
-                    {
-                        Debug.LogError("Unhandled error: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                    }
-
-                    break;
+                    Debug.LogError("TCP: "+ex.Message +ex.StackTrace);
+                    throw;
                 }
             }
+
+            return true;
         }
 
         private void ProcessCryptSetup(CryptSetup cryptSetup)
@@ -384,6 +404,17 @@ namespace Mumble
         }
 
         internal void SendPing(object sender, ElapsedEventArgs elapsedEventArgs)
+        {
+            if (_validConnection)
+            {
+                var ping = new MumbleProto.Ping();
+                ping.Timestamp = (ulong) (DateTime.UtcNow.Ticks - DateTime.Parse("01/01/1970 00:00:00").Ticks);
+                //Debug.Log("Sending ping");
+                SendMessage(MessageType.Ping, new MumbleProto.Ping());
+            }
+        }
+        
+        internal void SendPing()
         {
             if (_validConnection)
             {

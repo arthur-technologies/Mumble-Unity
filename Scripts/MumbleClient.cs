@@ -194,6 +194,28 @@ namespace Mumble
                 Init(addresses);
             }
         }
+        DateTime _lastSentPing = DateTime.MinValue;
+        private static double PING_DELAY_MILLISECONDS = 5000;
+
+        public bool Process()
+        {
+            if ((DateTime.UtcNow - _lastSentPing).TotalMilliseconds > PING_DELAY_MILLISECONDS)
+            {
+                _tcpConnection.SendPing();
+
+                if (_udpConnection.IsConnected)
+                    _udpConnection.SendPing();
+
+                _lastSentPing = DateTime.UtcNow;
+            }
+
+            _tcpProcessed = _tcpConnection.ProcessTcpData();
+            _udpProcessed = _udpConnection.IsConnected && _udpConnection.Process();
+            return _tcpProcessed || _udpProcessed;
+        }
+        //declared outside method for alloc optimization
+        private bool _tcpProcessed;
+        private bool _udpProcessed;
         public string GetServerIP()
         {
             if (_addresses == null
@@ -378,6 +400,7 @@ namespace Mumble
         }
         private void AddDecodingBuffer(UserState userState)
         {
+            Debug.LogError("addingDecoder: "+userState.Name);
             // Make sure we don't double add
             if (_audioDecodingBuffers.ContainsKey(userState.Session))
                 return;
@@ -467,6 +490,7 @@ namespace Mumble
         
         internal void SetServerSync(ServerSync sync)
         {
+            Debug.LogError("SetServerSync");
             ServerSync = sync;
             OurUserState = AllUsers[ServerSync.Session];
             // Now that we know who we are, we can determine which users need decoding buffers
@@ -499,14 +523,14 @@ namespace Mumble
             // Try to remove the audio player and decoding buffer if it exists
             TryRemoveDecodingBuffer(removedUserSession);
         }
-        public void Connect(string username, string password)
+        public void Connect(string username, string password, Action<bool> onConnected)
         {
             if (!ReadyToConnect)
             {
                 Debug.LogError("We're not ready to connect yet!");
                 return;
             }
-            _tcpConnection.StartClient(username, password);
+            _tcpConnection.StartClient(username, password,onConnected);
         }
         internal void ConnectUdp()
         {
@@ -593,7 +617,7 @@ namespace Mumble
         }
         public int LoadArrayWithVoiceData(UInt32 session, float[] pcmArray, int offset, int length)
         {
-            if (session == ServerSync.Session && !_debugValues.UseLocalLoopback)
+            if (session == ServerSync.Session)// && !_debugValues.UseLocalLoopback)
                 return 0;
             //Debug.Log("Will decode for " + session);
 
@@ -853,6 +877,7 @@ namespace Mumble
 
         internal void OnConnectionDisconnect()
         {
+            Debug.LogError("onConnectionDisconnect");
             //Debug.LogError("Mumble connection disconnected");
             ReadyToConnect = false;
             ConnectionSetupFinished = false;

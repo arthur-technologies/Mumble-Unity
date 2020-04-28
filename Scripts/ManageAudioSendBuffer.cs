@@ -233,7 +233,8 @@ namespace Mumble
                     }
                     else
                     {
-                        Debug.LogError("Error: " + e);
+                        // Debug.LogError("Error: " + e);
+                        throw;
                     }
                 }
             }

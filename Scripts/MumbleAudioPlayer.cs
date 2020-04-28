@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Mime;
 using Arthur.Client.Controllers;
 using Arthur.Client.Controllers.Avatars;
+using Arthur.Client.EventSystem.VRModelSystem;
 using MumbleProto;
 using Sirenix.Utilities;
 using UniRx;

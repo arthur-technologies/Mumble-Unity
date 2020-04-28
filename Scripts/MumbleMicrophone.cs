@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using Arthur.Client.Controllers;
+using Arthur.Client.EventSystem.VRModelSystem;
 using UnityEngine.Android;
 
 namespace Mumble
@@ -221,6 +222,11 @@ namespace Mumble
                         }
                         ArNotificationManager.Instance.FadeInMutedImage();
                         _mumbleClient.SendVoicePacket(newData);
+                        if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
+                        {
+                            CancelInvoke(nameof(RefreshMic));
+                            Invoke(nameof(RefreshMic),2);
+                        }
                     }
                     else
                     {
@@ -250,6 +256,19 @@ namespace Mumble
                     else
                         newData.PositionalDataLength = 0;
                     _mumbleClient.SendVoicePacket(newData);
+                }
+            }
+        }
+
+        void RefreshMic()
+        {
+            if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
+            {
+                Debug.LogError("AutoRefresh");
+                if (!_mumbleClient.IsSelfMuted())
+                {
+                    _mumbleClient.SetSelfMute(true);
+                    _mumbleClient.SetSelfMute(false);
                 }
             }
         }

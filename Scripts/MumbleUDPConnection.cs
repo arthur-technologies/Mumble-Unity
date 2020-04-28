@@ -22,7 +22,7 @@ namespace Mumble
         private MumbleTcpConnection _tcpConnection;
         private CryptState _cryptState;
         private Timer _udpTimer;
-        private bool _isConnected;
+        public bool IsConnected { get; private set; }
         internal volatile int NumPacketsSent;
         internal volatile int NumPacketsRecv;
         internal volatile bool _useTcp;
@@ -61,23 +61,35 @@ namespace Mumble
             // sure that all packets received are received as discreet datagrams
             _udpClient.DontFragment = true;
 
-            _isConnected = true;
+            IsConnected = true;
 
             _udpTimer = new Timer(MumbleConstants.PING_INTERVAL_MS);
             _udpTimer.Elapsed += RunPing;
             _udpTimer.Enabled = true;
 
             SendPing();
-            _receiveThread = new Thread(ReceiveUDP)
-            {
-                IsBackground = true
-            };
-            _receiveThread.Start();
+            // _receiveThread = new Thread(ReceiveUDP)
+            // {
+            //     IsBackground = true
+            // };
+            // _receiveThread.Start();
         }
 
         private void RunPing(object sender, ElapsedEventArgs elapsedEventArgs)
         {
              SendPing();
+        }
+        public bool Process()
+        {
+            if (_udpClient.Client == null
+                || _udpClient.Available == 0)
+                return false;
+            // IPEndPoint sender = _host;
+            // byte[] data = _udpClient.Receive(ref sender);
+
+            // _mumbleClient.ReceivedEncryptedUdp(data);
+            ReceiveUDP();
+            return true;
         }
         private void ReceiveUDP()
         {
@@ -86,10 +98,9 @@ namespace Mumble
                 _recvBuffer = new byte[MaxUDPSize];
 
             EndPoint endPoint = _host;
-            while (true)
-            {
-                try
-                {
+            
+                // try
+                // {
                     // This should only happen on exit
                     if (_udpClient == null)
                         return;
@@ -99,6 +110,7 @@ namespace Mumble
 
                     // We receive the data into a pre-allocated buffer to avoid
                     // needless allocations
+
                     byte[] encrypted;
                     int readLen = _udpClient.Client.ReceiveFrom(_recvBuffer, ref endPoint);
                     encrypted = _recvBuffer;
@@ -113,29 +125,29 @@ namespace Mumble
                             + " prev pkt size:" + prevPacketSize);
                     }
                     prevPacketSize = readLen;
-                }catch(Exception ex)
-                {
-                    _receiveThread?.Abort();
-                    if (ex is ObjectDisposedException)
-                    {
-                        Debug.LogError("ObjectDisposedException error: " + ex);
-                        
-                        _mumbleClient.OnConnectionDisconnect();
-                        break;
-                    }
-
-                    if (ex is ThreadAbortException)
-                    {
-                        //Debug.LogError("ThreadAbortException error: " + ex);
-                        _mumbleClient.OnConnectionDisconnect();
-                        break;
-                    }
-
-                    Debug.LogError("Unhandled UDP receive error: " + ex);
-                    _mumbleClient.OnConnectionDisconnect();
-                    break;
-                }
-            }
+                // }catch(Exception ex)
+                // {
+                //     _receiveThread?.Abort();
+                //     if (ex is ObjectDisposedException)
+                //     {
+                //         Debug.LogError("ObjectDisposedException error: " + ex);
+                //         
+                //         _mumbleClient.OnConnectionDisconnect();
+                //         break;
+                //     }
+                //
+                //     if (ex is ThreadAbortException)
+                //     {
+                //         //Debug.LogError("ThreadAbortException error: " + ex);
+                //         _mumbleClient.OnConnectionDisconnect();
+                //         break;
+                //     }
+                //
+                //     Debug.LogError("Unhandled UDP receive error: " + ex);
+                //     _mumbleClient.OnConnectionDisconnect();
+                //     break;
+                // }
+                //
         }
         internal bool ProcessUdpMessage(byte[] encrypted, int len)
         {
@@ -241,7 +253,7 @@ namespace Mumble
             _sendPingBuffer[0] = (1 << 5);
             var encryptedData = _cryptState.Encrypt(_sendPingBuffer, timeBytes.Length + 1);
 
-            if (!_isConnected)
+            if (!IsConnected)
             {
                 Debug.LogError("Not yet connected");
                 return;
@@ -250,8 +262,8 @@ namespace Mumble
             if(!_useTcp && _numPingsOutstanding >= MumbleConstants.MAX_CONSECUTIVE_MISSED_UDP_PINGS)
             {
                 Debug.LogWarning("Error establishing UDP connection, will switch to TCP- Temp Disabled");
-                //_useTcp = true;
-                _mumbleClient.OnConnectionDisconnect();
+                _useTcp = true;
+                // _mumbleClient.OnConnectionDisconnect();
             }
             //Debug.Log(_numPingsSent - _numPingsReceived);
             _numPingsOutstanding++;
@@ -268,10 +280,11 @@ namespace Mumble
             _udpTimer?.Close();
             _udpTimer = null;
             _udpClient.Close();
+            IsConnected = false;
         }
         internal void SendVoicePacket(byte[] voicePacket)
         {
-            if (!_isConnected)
+            if (!IsConnected)
             {
                 Debug.LogError("Not yet connected");
                 return;
@@ -301,34 +314,36 @@ namespace Mumble
                 NumPacketsSent++;
             }catch(Exception ex)
             {
-                //Debug.LogError("Error sending packet: " + e);
-                if (ex is EndOfStreamException)
-                {
-                    Debug.LogError("EOS Exception: " + ex);//This happens when we connect again with the same username
-                    _mumbleClient.OnConnectionDisconnect();
-                }
-                else if (ex is IOException)
-                {
-                    Debug.LogError("IO Exception: " + ex);
-                    _mumbleClient.OnConnectionDisconnect();
-                }
-                //These just means the app stopped, it's ok
-                else if (ex is ObjectDisposedException) 
-                { 
-                    Debug.LogError("ObjectDisposedException: " + ex);
-                    _mumbleClient.OnConnectionDisconnect();
-                    
-                }
-                else if (ex is ThreadAbortException)
-                {
-                    Debug.LogError("ThreadAbortException: " + ex);
-                    _mumbleClient.OnConnectionDisconnect();
-                }
-                else
-                {
-                    Debug.LogError("Unhandled error: " + ex);
-                    _mumbleClient.OnConnectionDisconnect();
-                }
+                // //Debug.LogError("Error sending packet: " + e);
+                // if (ex is EndOfStreamException)
+                // {
+                //     Debug.LogError("EOS Exception: " + ex);//This happens when we connect again with the same username
+                //     // _mumbleClient.OnConnectionDisconnect();
+                // }
+                // else if (ex is IOException)
+                // {
+                //     Debug.LogError("IO Exception: " + ex);
+                //     // _mumbleClient.OnConnectionDisconnect();
+                // }
+                // //These just means the app stopped, it's ok
+                // else if (ex is ObjectDisposedException) 
+                // { 
+                //     Debug.LogError("ObjectDisposedException: " + ex);
+                //     // _mumbleClient.OnConnectionDisconnect();
+                //     
+                // }
+                // else if (ex is ThreadAbortException)
+                // {
+                //     Debug.LogError("ThreadAbortException: " + ex);
+                //     // _mumbleClient.OnConnectionDisconnect();
+                // }
+                // else
+                // {
+                //     Debug.LogError("Unhandled error: " + ex);
+                //     // _mumbleClient.OnConnectionDisconnect();
+                // }
+
+                throw;
             }
         }
         internal byte[] GetLatestClientNonce()

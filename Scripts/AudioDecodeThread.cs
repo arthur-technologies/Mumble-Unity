@@ -120,7 +120,7 @@ namespace Mumble {
                                     if(decoderState.Decoder != null)
                                         _unusedDecoders.Enqueue(decoderState.Decoder);
                                     _currentDecoders.Remove(messageData.Session);
-                                    //Debug.Log("Removing DecoderState for session: " + messageData.Session);
+                                    Debug.LogError("Removing DecoderState for session: " + messageData.Session);
                                 }
                                 else
                                     Debug.Log("Failed to remove decoder for session: " + messageData.Session);
@@ -129,10 +129,10 @@ namespace Mumble {
                                 // Drop this audio, if there's no assigned decoder ready to receive it
                                 if (!_currentDecoders.TryGetValue(messageData.Session, out decoderState))
                                 {
-                                    Debug.LogWarning("No DecoderState for session: " + messageData.Session);
-                                    // _currentDecoders[messageData.Session] = new DecoderState();
-                                    // _mumbleClient.ReevaluateADecodingBufferForUserSession(messageData.Session);
-                                    break;
+                                    Debug.LogError("No DecoderState for session: " + messageData.Session);
+                                     _currentDecoders[messageData.Session] = new DecoderState();
+                                     _mumbleClient.ReevaluateADecodingBufferForUserSession(messageData.Session);
+                                    // break;
                                 }
                                 // Make an OpusDecoder if there isn't one
                                 if(decoderState.Decoder == null)

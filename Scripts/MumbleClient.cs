@@ -626,7 +626,7 @@ namespace Mumble
         }
         public int LoadArrayWithVoiceData(UInt32 session, float[] pcmArray, int offset, int length)
         {
-            if (session == ServerSync.Session)// && !_debugValues.UseLocalLoopback)
+            if (ServerSync != null && (ServerSync == null && session == ServerSync.Session))// && !_debugValues.UseLocalLoopback)
                 return 0;
             //Debug.Log("Will decode for " + session);
 

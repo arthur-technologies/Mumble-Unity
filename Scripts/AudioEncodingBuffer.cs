@@ -92,11 +92,10 @@ namespace Mumble
                 isEmpty = true;
 
             encoder_buffer = isEmpty ? EmptyByteSegment : encoder.Encode(nextPcmToSend.Pcm);
-            byte[] pos = nextPcmToSend == null ? null : nextPcmToSend.PositionalData;
-            int posLen = nextPcmToSend == null ? 0 : nextPcmToSend.PositionalDataLength;
+            byte[] pos = nextPcmToSend?.PositionalData;
+            int posLen = nextPcmToSend?.PositionalDataLength ?? 0;
 
-            if (nextPcmToSend != null)
-                nextPcmToSend.UnRef();
+            nextPcmToSend?.UnRef();
 
             if (isStop)
             {

@@ -2,6 +2,7 @@
 using System.Collections;
 using Arthur.Client.Controllers;
 using Arthur.Client.EventSystem.VRModelSystem;
+using MEC;
 using UnityEngine.Android;
 
 namespace Mumble
@@ -149,7 +150,7 @@ namespace Mumble
         {
             return _mumbleClient.GetBitrate();
         }
-        void SendVoiceIfReady()
+        int SendVoiceIfReady()
         {
             /*if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
             {
@@ -182,7 +183,7 @@ namespace Mumble
                 StopSendingAudio();
                 if (OnMicDisconnect != null)
                     OnMicDisconnect();
-                return;
+                return 0;
             }
 
             // We drop the first sample, because it generally starts with
@@ -191,12 +192,17 @@ namespace Mumble
             if (isFirstSample)
             {
                 _totalNumSamplesSent = totalSamples;
-                return;
+                return 0;
             }
 
             while(totalSamples - _totalNumSamplesSent >= NumSamplesPerOutgoingPacket)
             {
                 PcmArray newData = _mumbleClient.GetAvailablePcmArray();
+
+                if (newData == null)
+                {
+                    return -1;
+                }
 
                 if (!_mumbleClient.UseSyntheticSource)
                     SendAudioClip.GetData(newData.Pcm, _totalNumSamplesSent % NumSamplesInMicBuffer);
@@ -257,6 +263,8 @@ namespace Mumble
                     _mumbleClient.SendVoicePacket(newData);
                 }
             }
+
+            return 1;
         }
 
         void RefreshMic()
@@ -264,11 +272,11 @@ namespace Mumble
             if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
             {
                 Debug.Log("AutoRefresh");
-                if (!_mumbleClient.IsSelfMuted())
+                /*if (!_mumbleClient.IsSelfMuted())
                 {
                     _mumbleClient.SetSelfMute(true);
                     _mumbleClient.SetSelfMute(false);
-                }
+                }*/
             }
         }
         private static bool AmplitudeHigherThan(float minAmplitude, float[] pcm)
@@ -318,6 +326,8 @@ namespace Mumble
             _mumbleClient.StopSendingVoice();
             isRecording = false;
         }
+
+        private bool wohCaseWalaBool = false;
         void Update()
         {
             if (_mumbleClient == null || !_mumbleClient.ConnectionSetupFinished)
@@ -332,8 +342,16 @@ namespace Mumble
                 if (Input.GetKeyUp(PushToTalkKeycode))
                     StopSendingAudio();
             }
+
             if (isRecording)
-                SendVoiceIfReady();
+            {
+                if (MeetingController.instance.playerController.arMumbleClient.IsConnected && SendVoiceIfReady() == -1)
+                {
+                    Debug.LogError("Woh Case ho Gaya hai!!");
+                    //wohCaseWalaBool = true;
+                    Timing.RunCoroutine(MeetingController.instance.playerController.arMumbleClient.Reconnect());
+                }
+            }
         }
     }
 }

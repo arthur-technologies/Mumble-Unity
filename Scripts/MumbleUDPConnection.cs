@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Timers;
+using Arthur.Client.EventSystem.VRModelSystem;
 using MumbleProto;
 using UnityEngine;
 using Object = System.Object;
@@ -184,11 +185,11 @@ namespace Mumble
             //Debug.Log("Would process ping");
             _numPingsOutstanding = 0;
             // If we received a ping, that means that UDP is working
-            if (_useTcp)
-            {
-                Debug.Log("Switching back to UDP");
-                _useTcp = false;
-            }
+              if (_useTcp)
+              {
+                  Debug.Log("Switching back to UDP");
+                  _useTcp = false;
+              }
         }
         internal void UnpackOpusVoicePacket(byte[] plainTextMessage, bool isLoopback)
         {
@@ -257,6 +258,11 @@ namespace Mumble
                 Debug.LogError("Not yet connected");
                 return;
             }
+
+            /*if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
+            {
+                _useTcp = true;
+            }*/
 
             if(!_useTcp && _numPingsOutstanding >= MumbleConstants.MAX_CONSECUTIVE_MISSED_UDP_PINGS)
             {

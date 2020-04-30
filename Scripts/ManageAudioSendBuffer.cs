@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using Arthur.Client.EventSystem.VRModelSystem;
 using UnityEngine;
 
 namespace Mumble
@@ -91,22 +92,30 @@ namespace Mumble
         }
         public PcmArray GetAvailablePcmArray()
         {
-            foreach(PcmArray ray in _pcmArrays)
+            if (!ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
             {
-                if (ray._refCount == 0)
+                foreach (PcmArray ray in _pcmArrays)
                 {
-                    ray.Ref();
-                    //Debug.Log("re-using buffer");
-                    return ray;
+                    if (ray._refCount == 0)
+                    {
+                        ray.Ref();
+                        //Debug.Log("re-using buffer");
+                        return ray;
+                    }
                 }
             }
-            PcmArray newArray = new PcmArray(_mumbleClient.NumSamplesPerOutgoingPacket, _pcmArrays.Count, _maxPositionalLength);
-            _pcmArrays.Add(newArray);
 
-            if(_pcmArrays.Count > 10)
+            PcmArray newArray = null;
+            if(_pcmArrays.Count > 100)
             {
-                Debug.LogWarning(_pcmArrays.Count + " audio buffers in-use. There may be a leak");
+                Debug.LogError(_pcmArrays.Count + " audio buffers in-use. There may be a leak");
             }
+            else
+            {
+                newArray = new PcmArray(_mumbleClient.NumSamplesPerOutgoingPacket, _pcmArrays.Count, _maxPositionalLength);
+                _pcmArrays.Add(newArray);
+            }
+
             //Debug.Log("New buffer length is: " + _pcmArrays.Count);
             return newArray;
         }

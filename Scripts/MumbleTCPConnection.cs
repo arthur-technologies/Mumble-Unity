@@ -188,8 +188,15 @@ namespace Mumble
 
         public bool ProcessTcpData()
         {
-            if (!_tcpClient.Connected)
-                throw new InvalidOperationException("Not connected");
+            try
+            {
+                var isConnected = !_tcpClient.Connected;
+            }
+            catch (Exception e)
+            {
+                
+                throw;
+            }
             
             if (!networkStream.DataAvailable)
                 return false;
@@ -305,7 +312,7 @@ namespace Mumble
                             break;
                         case MessageType.UDPTunnel:
                             var length = IPAddress.NetworkToHostOrder(_reader.ReadInt32());
-                            //Debug.Log("Received UDP tunnel of length: " + length);
+                            Debug.Log("Received UDP tunnel of length: " + length);
                             //At this point the message is already decrypted
                             _udpConnection.UnpackOpusVoicePacket(_reader.ReadBytes(length), false);
                             /*
@@ -314,8 +321,9 @@ namespace Mumble
                             */
                             break;
                         case MessageType.Ping:
-                            MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(MumbleProto.Ping),
+                            Ping ping = (Ping) MyProto.DeserializeWithLengthPrefix(_ssl, null, typeof(MumbleProto.Ping),
                                 PrefixStyle.Fixed32BigEndian, 0);
+                            ReceivePing(ping);
                             break;
                         case MessageType.Reject:
                             // This is called, for example, when the max number of users has been hit
@@ -422,15 +430,87 @@ namespace Mumble
             }
         }
         
+        #region pings
+        //using the approch described here to do running calculations of ping values.
+        // http://dsp.stackexchange.com/questions/811/determining-the-mean-and-standard-deviation-in-real-time
+        private float _meanOfPings;
+        private float _varianceTimesCountOfPings;
+        private int _countOfPings;
+        
+        public float? TcpPingAverage { get; set; }
+        public float? TcpPingVariance { get; set; }
+        public uint? TcpPingPackets { get; set; }
+
+        /// <summary>
+        /// Gets a value indicating whether ping stats should set timestamp when pinging.
+        /// Only set the timestamp if we're currently connected.  This prevents the ping stats from being built.
+        /// otherwise the stats will be throw off by the time it takes to connect.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if ping stats should set timestamp when pinging; otherwise, <c>false</c>.
+        /// </value>
+        internal bool ShouldSetTimestampWhenPinging { get; private set; }
+
+        internal void ReceivePing(Ping ping)
+        {
+            ShouldSetTimestampWhenPinging = true;
+            if (ping.ShouldSerializeTimestamp() && ping.Timestamp != 0)
+            {
+                var mostRecentPingtime =
+                    (float)TimeSpan.FromTicks(DateTime.UtcNow.Ticks - (long)ping.Timestamp).TotalMilliseconds;
+
+                //The ping time is the one-way transit time.
+                mostRecentPingtime /= 2;
+
+                var previousMean = _meanOfPings;
+                _countOfPings++;
+                _meanOfPings = _meanOfPings + ((mostRecentPingtime - _meanOfPings) / _countOfPings);
+                _varianceTimesCountOfPings = _varianceTimesCountOfPings +
+                                             ((mostRecentPingtime - _meanOfPings) * (mostRecentPingtime - previousMean));
+
+                TcpPingPackets = (uint)_countOfPings;
+                TcpPingAverage = _meanOfPings;
+                TcpPingVariance = _varianceTimesCountOfPings / _countOfPings;
+            }
+
+
+        }
+        
+        
         internal void SendPing()
         {
             if (_validConnection)
             {
-                var ping = new MumbleProto.Ping();
-                ping.Timestamp = (ulong) (DateTime.UtcNow.Ticks - DateTime.Parse("01/01/1970 00:00:00").Ticks);
-                //Debug.Log("Sending ping");
-                SendMessage(MessageType.Ping, new MumbleProto.Ping());
+                var ping = new Ping();
+
+                //Only set the timestamp if we're currently connected.  This prevents the ping stats from being built.
+                //  otherwise the stats will be throw off by the time it takes to connect.
+                if (ShouldSetTimestampWhenPinging)
+                {
+                    ping.Timestamp = (ulong)DateTime.UtcNow.Ticks;
+                }
+
+                if (TcpPingAverage.HasValue)
+                {
+                    ping.TcpPingAvg = TcpPingAverage.Value;
+                }
+                if (TcpPingVariance.HasValue)
+                {
+                    ping.TcpPingVar = TcpPingVariance.Value;
+                }
+                if (TcpPingPackets.HasValue)
+                {
+                    ping.TcpPackets = TcpPingPackets.Value;
+                }
+
+                lock (_ssl)
+                    SendMessage(MessageType.Ping, ping);
+                //Send<Ping>(PacketType.Ping, ping);
             }
         }
+
+        
+        #endregion
+        
     }
 }

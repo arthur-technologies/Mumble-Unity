@@ -110,6 +110,14 @@ public class ARMumbleController : MonoBehaviour {
 #endif
     }
 
+    public IEnumerator<float> Reconnect()
+    {
+        _mumbleClient.OnConnectionDisconnect();
+        yield return Timing.WaitForOneFrame;
+        //yield return Timing.WaitForSeconds(2);
+        //Timing.RunCoroutine(ConnectAsync());
+    }
+
     public void StartUpdateLoop()
     {
         ThreadStart updateLoopThreadStart = new ThreadStart(() => UpdateLoop(_mumbleClient, out _updateLoopThreadException));

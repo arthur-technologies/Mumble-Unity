@@ -63,9 +63,9 @@ namespace Mumble
 
             IsConnected = true;
 
-            _udpTimer = new Timer(MumbleConstants.PING_INTERVAL_MS);
+            /*_udpTimer = new Timer(MumbleConstants.PING_INTERVAL_MS);
             _udpTimer.Elapsed += RunPing;
-            _udpTimer.Enabled = true;
+            _udpTimer.Enabled = true;*/
 
             SendPing();
             // _receiveThread = new Thread(ReceiveUDP)
@@ -81,8 +81,7 @@ namespace Mumble
         }
         public bool Process()
         {
-            if (_udpClient.Client == null
-                || _udpClient.Available == 0)
+            if (_udpClient.Client == null || _udpClient.Available == 0)
                 return false;
             // IPEndPoint sender = _host;
             // byte[] data = _udpClient.Receive(ref sender);

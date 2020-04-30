@@ -146,8 +146,10 @@ public class ARMumbleController : MonoBehaviour {
                 if (mumbleClient.Process())
                     Thread.Yield();
                 else
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
             }
+
+            Debug.Log("ClientState Disconnected, Ending UpdateLoop");
         } catch (Exception ex)
         {
             exception = ex;
@@ -162,6 +164,8 @@ public class ARMumbleController : MonoBehaviour {
         _clientState = State.Connected;
         StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
+
+        StartCoroutine(refreshUserState());
     }
 
     private void OnDisconnected()
@@ -178,6 +182,16 @@ public class ARMumbleController : MonoBehaviour {
         else
         {
             Debug.Log("AppClosing, No Reconnect Mumble!");
+        }
+    }
+
+    private IEnumerator refreshUserState()
+    {
+        if (!_mumbleClient.IsSelfMuted())
+        {
+            _mumbleClient.SetSelfMute(true);
+            yield return new WaitForSeconds(0.5f);
+            _mumbleClient.SetSelfMute(false);
         }
     }
 

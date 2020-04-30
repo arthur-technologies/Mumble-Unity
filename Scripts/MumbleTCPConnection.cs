@@ -55,16 +55,20 @@ namespace Mumble
         {
             _username = username;
             _password = password;
-            _tcpClient.BeginConnect(_host.Address, _host.Port, ar =>
+            
+            ConnectTCP((onConnected));
+            /*_tcpClient.BeginConnect(_host.Address, _host.Port, ar =>
             {
-                onConnected(OnTcpConnected(ar));
-            }, null);
+                OnTcpConnected(onConnected);
+                //onConnected(OnTcpConnected(ar));
+            }, null);*/
             //Debug.Log("Attempting to connect to " + _host);
         }
-        private bool OnTcpConnected(IAsyncResult connectionResult)
+        private void ConnectTCP(Action<bool> onConnected)
         {
             try
             {
+                _tcpClient.Connect(_host.Address,_host.Port);
                 if (!_tcpClient.Connected)
                 {
                     Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct");
@@ -76,7 +80,7 @@ namespace Mumble
             {
                 Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct- > Exception caught");
                 // _mumbleClient?.OnConnectionDisconnect();
-                return false;
+                onConnected(false);
                 throw;
             }
             
@@ -88,6 +92,7 @@ namespace Mumble
             _ssl.AuthenticateAsClient(_hostname);
             _reader = new BinaryReader(_ssl);
             _writer = new BinaryWriter(_ssl);
+            onConnected(true);
 
             DateTime startWait = DateTime.Now;
             while (!_ssl.IsAuthenticated)
@@ -97,7 +102,6 @@ namespace Mumble
             }
             SendVersion();
             //StartPingTimer();
-            return true;
         }
         private void SendVersion()
         {
@@ -195,10 +199,10 @@ namespace Mumble
             // {
             lock (_ssl)
             {
-                var messageType = (MessageType) IPAddress.NetworkToHostOrder(_reader.ReadInt16());
                 //Debug.Log("Processing data of type: " + messageType);
                 try
                 {
+                    var messageType = (MessageType) IPAddress.NetworkToHostOrder(_reader.ReadInt16());
                     switch (messageType)
                     {
                         case MessageType.Version:
@@ -213,12 +217,16 @@ namespace Mumble
                                 Opus = true
                             };
                             SendMessage(MessageType.Authenticate, authenticate);
+                           // ProcessTcpData();
                             break;
                         case MessageType.CryptSetup:
                             var cryptSetup = (CryptSetup) MyProto.DeserializeWithLengthPrefix(_ssl, null,
                                 typeof(CryptSetup),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             ProcessCryptSetup(cryptSetup);
+                            _validConnection = true;
+                            SendPing();
+                            //ProcessTcpData();
                             //Debug.Log("Got crypt");
                             break;
                         case MessageType.CodecVersion:

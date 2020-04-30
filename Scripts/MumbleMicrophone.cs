@@ -249,8 +249,7 @@ namespace Mumble
                 }
                 else
                 {
-                    if (OnMicData != null)
-                        OnMicData(newData);
+                    OnMicData?.Invoke(newData);
                     if (_writePositionalDataFunc != null)
                         _writePositionalDataFunc(ref newData.PositionalData, ref newData.PositionalDataLength);
                     else
@@ -264,7 +263,7 @@ namespace Mumble
         {
             if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
             {
-                Debug.LogError("AutoRefresh");
+                Debug.Log("AutoRefresh");
                 if (!_mumbleClient.IsSelfMuted())
                 {
                     _mumbleClient.SetSelfMute(true);

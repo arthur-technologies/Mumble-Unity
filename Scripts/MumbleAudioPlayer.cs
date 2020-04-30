@@ -7,10 +7,12 @@ using System.Net.Mime;
 using Arthur.Client.Controllers;
 using Arthur.Client.Controllers.Avatars;
 using Arthur.Client.EventSystem.VRModelSystem;
+using CurvedUI;
 using MumbleProto;
 using Sirenix.Utilities;
 using UniRx;
 using UnityEngine.Serialization;
+using VRTK.Examples.Archery;
 
 namespace Mumble
 {
@@ -145,10 +147,11 @@ namespace Mumble
                 }
                 else
                 {
-                    Transform transform1;
-                    (transform1 = this.transform).SetParent(memberItem.transform);
-                    transform1.localPosition = Vector3.zero;
-                    transform1.localRotation = Quaternion.identity;
+                    // Transform transform1;
+                    // (transform1 = this.transform).SetParent(memberItem.transform);
+                    // transform1.localPosition = Vector3.zero;
+                    // transform1.localRotation = Quaternion.identity;
+                    this.gameObject.AddComponentIfMissing<Follow>().target = memberItem.transform;
                     memberItem.GetComponent<PlayerAvatarManager>().speaker = this;
                     yield break;
                 }

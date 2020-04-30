@@ -132,7 +132,8 @@ namespace Mumble {
                                     Debug.LogError("No DecoderState for session: " + messageData.Session);
                                      _currentDecoders[messageData.Session] = new DecoderState();
                                      _mumbleClient.ReevaluateADecodingBufferForUserSession(messageData.Session);
-                                    // break;
+                                     decoderState = _currentDecoders[messageData.Session];
+                                     // break;
                                 }
                                 // Make an OpusDecoder if there isn't one
                                 if(decoderState.Decoder == null)

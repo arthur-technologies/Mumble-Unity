@@ -216,7 +216,7 @@ namespace Mumble
 
             int length = NativeMethods.opus_decode_float(decoder,
                 encodedData,
-                encodedData != null ? encodedData.Length : 0,
+                encodedData?.Length ?? 0,
                 outputPcm,
                 encodedData == null ? (channelRate / 100) * channelCount: outputPcm.Length / channelCount,
                 MumbleConstants.USE_FORWARD_ERROR_CORRECTION);

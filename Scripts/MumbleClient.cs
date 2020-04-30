@@ -6,6 +6,7 @@ using Version = MumbleProto.Version;
 using UnityEngine;
 using System.Collections.Generic;
 using Arthur.Client.Controllers;
+using UniRx.Diagnostics;
 
 namespace Mumble
 {
@@ -347,14 +348,22 @@ namespace Mumble
             if (OurUserState == null)
                 return;
 
-            // Create the audio player if the user is in the same room, and is not muted
-            if(ShouldAddAudioPlayerForUser(userState))
+            try
             {
-                AddDecodingBuffer(userState);
-            }else
+                // Create the audio player if the user is in the same room, and is not muted
+                if(ShouldAddAudioPlayerForUser(userState))
+                {
+                    AddDecodingBuffer(userState);
+                }else
+                {
+                    // Otherwise remove the audio decoding buffer and audioPlayer if it exists
+                    TryRemoveDecodingBuffer(userState.Session);
+                }
+            }
+            catch (Exception e)
             {
-                // Otherwise remove the audio decoding buffer and audioPlayer if it exists
-                TryRemoveDecodingBuffer(userState.Session);
+                Debug.LogError("KeyNot FOund while in ShouldAddAudioPlayerForUser");
+                throw;
             }
 
             // We check if otherUserStateChange is null multiple times just to

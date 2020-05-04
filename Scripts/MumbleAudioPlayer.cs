@@ -151,7 +151,10 @@ namespace Mumble
                     // (transform1 = this.transform).SetParent(memberItem.transform);
                     // transform1.localPosition = Vector3.zero;
                     // transform1.localRotation = Quaternion.identity;
-                    this.gameObject.AddComponentIfMissing<Follow>().target = memberItem.transform;
+                    var followScript = this.gameObject.AddComponentIfMissing<Follow>();
+                        followScript.target = memberItem.headTransform;
+                        followScript.followPosition = true;
+                        followScript.followRotation = true;
                     memberItem.GetComponent<PlayerAvatarManager>().speaker = this;
                     yield break;
                 }

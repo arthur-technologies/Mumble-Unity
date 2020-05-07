@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Security.Cryptography;
+using System.Threading;
 using MumbleProto;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ namespace Mumble
         /// This was last validated with Unity 2017.4.1
         /// </summary>
         private static readonly System.Object _cryptLock = new System.Object();
+        readonly ReaderWriterLockSlim _aesLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
         // Used by Encrypt
         private readonly byte[] _enc_tag = new byte[AES_BLOCK_SIZE];
@@ -53,7 +55,7 @@ namespace Mumble
 
         public CryptSetup CryptSetup
         {
-            get { return _cryptSetup; }
+            get => _cryptSetup;
             set
             {
                 lock (_cryptLock)

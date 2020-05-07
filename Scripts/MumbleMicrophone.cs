@@ -349,6 +349,7 @@ namespace Mumble
                 {
                     Debug.LogError("Woh Case ho Gaya hai!!");
                     //wohCaseWalaBool = true;
+                    StopSendingAudio();
                     Timing.RunCoroutine(MeetingController.instance.playerController.arMumbleClient.Reconnect());
                 }
             }

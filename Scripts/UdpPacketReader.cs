@@ -89,7 +89,7 @@ namespace Mumble
                     //However in this case it's just 6 ones, and then the data (111111xx). Depending on the data, the leading count changes
                     return ~(b & 3);
                 default:
-                    throw new Exception("Invalid varint encoding");
+                    throw new InvalidDataException("Invalid varint encoding");
             }
         }
 

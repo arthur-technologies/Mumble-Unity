@@ -173,7 +173,7 @@ public class ARMumbleController : MonoBehaviour {
         StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
 
-        StartCoroutine(refreshUserState());
+        StartCoroutine(RefreshUserState());
     }
 
     private void OnDisconnected()
@@ -193,7 +193,7 @@ public class ARMumbleController : MonoBehaviour {
         }
     }
 
-    private IEnumerator refreshUserState()
+    private IEnumerator RefreshUserState()
     {
         if (!_mumbleClient.IsSelfMuted())
         {

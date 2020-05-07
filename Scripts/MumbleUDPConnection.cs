@@ -91,6 +91,10 @@ namespace Mumble
             ReceiveUDP();
             return true;
         }
+
+
+        private int _decryptErrorCounter = 0;
+        
         private void ReceiveUDP()
         {
             int prevPacketSize = 0;
@@ -123,6 +127,14 @@ namespace Mumble
                             + " ttl:" + _udpClient.Ttl
                             + " avail: " + _udpClient.Available
                             + " prev pkt size:" + prevPacketSize);
+
+                        _decryptErrorCounter++;
+
+                        if (_decryptErrorCounter > 10)
+                        {
+                            _decryptErrorCounter = 0;
+                            throw new Exception("Decrypt Error");
+                        }
                     }
                     prevPacketSize = readLen;
                 // }catch(Exception ex)

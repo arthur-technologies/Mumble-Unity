@@ -46,7 +46,8 @@ public class ARMumbleController : MonoBehaviour {
         Connecting,
         Connected,
         Disconnected,
-        Reconnecting
+        Reconnecting,
+        Closing
     }
 
 	void Start () {
@@ -172,6 +173,7 @@ public class ARMumbleController : MonoBehaviour {
         _clientState = State.Connected;
         StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
+        //_mumbleClient.SetSelfMute(true);
 
         StartCoroutine(RefreshUserState());
     }
@@ -179,9 +181,12 @@ public class ARMumbleController : MonoBehaviour {
     private void OnDisconnected()
     {
         isJoinedChannel = false;
-        _clientState = State.Disconnected;
-
-        if (!isAppClosing)
+        if (_clientState == State.Closing)
+        {
+            Debug.Log("Closing Mumble!");
+            _clientState = State.Disconnected;
+        }
+        else if (!isAppClosing)
         {
             _clientState = State.Reconnecting;
             // StartCoroutine(ConnectAsync());
@@ -189,7 +194,7 @@ public class ARMumbleController : MonoBehaviour {
         }
         else
         {
-            Debug.Log("AppClosing, No Reconnect Mumble!");
+            Debug.Log("AppClosing, Closing Mumble!");
         }
     }
 
@@ -248,7 +253,7 @@ public class ARMumbleController : MonoBehaviour {
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError("Mumble Coonected GetCurrentChannel Exception: ");
+                    Debug.LogError("Mumble Connected GetCurrentChannel Exception: ");
                     throw;
                 }
 
@@ -355,6 +360,18 @@ public class ARMumbleController : MonoBehaviour {
         //{
         //    StartMicrophone();
         //}
+    }
+
+    public void Disconnect()
+    {
+        if (MyMumbleMic.isRecording)
+        {
+            MyMumbleMic.StopSendingAudio();
+        }
+
+        _clientState = State.Closing;
+        _mumbleClient?.OnConnectionDisconnect();
+        ArNotificationManager.Instance.UpdateMutedState(false);
     }
 
     public void StartMicrophone()

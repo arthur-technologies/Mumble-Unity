@@ -197,9 +197,22 @@ namespace Mumble
                 
                 throw;
             }
-            
-            if (!networkStream.DataAvailable)
-                return false;
+
+            try
+            {
+                if (networkStream == null)
+                {
+                    return false;
+                }
+                if (!networkStream.DataAvailable)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
             
             // This thread is aborted in Close()
             // try

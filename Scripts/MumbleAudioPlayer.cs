@@ -318,6 +318,7 @@ namespace Mumble
         
         private void OnDestroy()
         {
+            IsSpeaking = false;
             disposables?.Dispose();
         }
     }

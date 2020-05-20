@@ -41,7 +41,7 @@ public class ARMumbleController : MonoBehaviour {
 
     private State _clientState = State.Disconnected;
 
-    private enum State
+    public enum State
     {
         Connecting,
         Connected,
@@ -129,7 +129,11 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     ArNotificationManager.Instance.ShowAudioReconnectingPopup();
                 });
+                _clientState = State.Reconnecting;
+                Debug.Log("UpdateLoopThreadedException");
                 _mumbleClient.OnConnectionDisconnect();
+                //EventProcessor.Instance.QueueEvent(Disconnect);
+                
                 Thread.Sleep(2000);
                 if (isAppClosing)
                     return;
@@ -181,6 +185,37 @@ public class ARMumbleController : MonoBehaviour {
     private void OnDisconnected()
     {
         isJoinedChannel = false;
+
+        switch (_clientState)
+        {
+            case State.Connecting:
+            case State.Connected:
+            case State.Reconnecting:
+                if (!isAppClosing)
+                {
+                    _clientState = State.Reconnecting;
+                    Debug.Log("Reconnecting Mumble!"); 
+                    //Timing.RunCoroutineSingleton(ConnectAsync(),"voip",SingletonBehavior.Overwrite);
+                    Timing.RunCoroutine(ConnectAsync());
+                }
+                else
+                {
+                    Debug.Log("AppClosing, Closing Mumble!");
+                }
+                break;
+            case State.Disconnected:
+                
+                Debug.Log("OnDisconnected --> Disconnected!");
+                break;
+            case State.Closing:
+                Debug.Log("Closing Mumble!");
+                _clientState = State.Disconnected;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        
+        /*
         if (_clientState == State.Closing)
         {
             Debug.Log("Closing Mumble!");
@@ -189,13 +224,13 @@ public class ARMumbleController : MonoBehaviour {
         else if (!isAppClosing)
         {
             _clientState = State.Reconnecting;
-            // StartCoroutine(ConnectAsync());
+             StartCoroutine(ConnectAsync());
             Debug.Log("Reconnecting Mumble!");
         }
         else
         {
             Debug.Log("AppClosing, Closing Mumble!");
-        }
+        }*/
     }
 
     private IEnumerator RefreshUserState()
@@ -286,22 +321,36 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
-                        yield return Timing.WaitForOneFrame;
+                        yield return Timing.WaitForSeconds(1);
                     Debug.Log("Will now connect");
-                    //yield return new WaitForEndOfFrame();
+                    yield return Timing.WaitForSeconds(1);
                     Username = Username.Split('-')[0] + "-" +speakerCount;
-                    _mumbleClient.Connect(Username, Password, b =>
+                   
+                    var st = _mumbleClient.Connect(Username, Password, b =>
                     {
+
                         if (b)
                         {
                             StartUpdateLoop();
                         }
                         else
                         {
-                            StartUpdateLoop();
+                            // yield return Timing.WaitForSeconds(2);
+                            _clientState = State.Reconnecting;
                             Debug.LogError("MumbleClient: TCP Disconnected");
+                            //Timing.RunCoroutineSingleton(ConnectAsync(),"voip",SingletonBehavior.Overwrite);
+                            StartUpdateLoop();
                         }
-                    } );
+
+                    });
+                    if(st == -1) 
+                    {
+                        yield return Timing.WaitForSeconds(2);
+                        _clientState = State.Reconnecting;
+                        Debug.Log("Connect Return Not ready , Reconnecting");
+                        //Timing.RunCoroutineSingleton(ConnectAsync(),"voip",SingletonBehavior.Overwrite);
+                        StartUpdateLoop();
+                    }
                 }
                 else
                 {
@@ -315,22 +364,41 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
-                        yield return Timing.WaitForOneFrame;
+                    {
+                        yield return Timing.WaitForSeconds(1);
+                    }
+
                     Debug.Log("Will now Reconnect");
                     //yield return new WaitForEndOfFrame();
                     Username = Username.Split('-')[0] + "-" +speakerCount;
-                    _mumbleClient.Connect(Username, Password, b =>
+                    yield return Timing.WaitForSeconds(1);
+                    var st = _mumbleClient.Connect(Username, Password, b =>
                     {
+
                         if (b)
                         {
                             StartUpdateLoop();
                         }
                         else
                         {
-                            StartUpdateLoop();
+                            // yield return Timing.WaitForSeconds(2);
+                            //_clientState = State.Reconnecting;
                             Debug.LogError("MumbleClient: TCP Disconnected");
+                            speakerCount++;
+                            Disconnect(State.Reconnecting);
+                            //Timing.RunCoroutineSingleton(ConnectAsync(),"voip",SingletonBehavior.Wait);
+                            //StartUpdateLoop();
                         }
-                    } );
+
+                    });
+                    if(st == -1) 
+                    {
+                        yield return Timing.WaitForSeconds(2);
+                        _clientState = State.Reconnecting;
+                        Debug.Log("Connect Return Not ready , Reconnecting");
+                        //Timing.RunCoroutineSingleton(ConnectAsync(),"voip",SingletonBehavior.Overwrite);
+                        StartUpdateLoop();
+                    }
                     
                 }
                 else
@@ -362,14 +430,14 @@ public class ARMumbleController : MonoBehaviour {
         //}
     }
 
-    public void Disconnect()
+    public void Disconnect(State state)
     {
         if (MyMumbleMic.isRecording)
         {
             MyMumbleMic.StopSendingAudio();
         }
 
-        _clientState = State.Closing;
+        _clientState = state;
         _mumbleClient?.OnConnectionDisconnect();
         ArNotificationManager.Instance.UpdateMutedState(false);
     }

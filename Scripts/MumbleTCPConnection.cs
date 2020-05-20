@@ -68,6 +68,11 @@ namespace Mumble
         {
             try
             {
+                if (_tcpClient.Connected)
+                {
+                    onConnected(true);
+                    return;
+                }
                 _tcpClient.Connect(_host.Address,_host.Port);
                 if (!_tcpClient.Connected)
                 {
@@ -76,23 +81,32 @@ namespace Mumble
                     throw new Exception("Failed to connect");
                 }
             } 
-            catch (Exception e)
+            catch (SocketException e)
             {
-                Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct- > Exception caught");
+                Debug.LogError("Connection failed! Please confirm that you have internet access, and that the hostname is correct- > Exception caught: ");
                 // _mumbleClient?.OnConnectionDisconnect();
                 onConnected(false);
                 throw;
+                //return;
             }
             
 
             MyProto = (TypeModel) Activator.CreateInstance(Type.GetType("MyProtoModel, MyProtoModel") ?? throw new Exception("Failed to Create MyProtoModel Serailizer/Deserializer"));
-
-            networkStream = _tcpClient.GetStream();
-            _ssl = new SslStream(networkStream, false, ValidateCertificate);
-            _ssl.AuthenticateAsClient(_hostname);
-            _reader = new BinaryReader(_ssl);
-            _writer = new BinaryWriter(_ssl);
-            onConnected(true);
+            try
+            { 
+                networkStream = _tcpClient.GetStream();
+                _ssl = new SslStream(networkStream, false, ValidateCertificate);
+                _ssl.AuthenticateAsClient(_hostname);
+                _reader = new BinaryReader(_ssl);
+                _writer = new BinaryWriter(_ssl);
+                onConnected(true);
+            }
+            catch (Exception e)
+            {
+                //Console.WriteLine(e);
+                onConnected(false);
+                throw;
+            }
 
             DateTime startWait = DateTime.Now;
             while (!_ssl.IsAuthenticated)

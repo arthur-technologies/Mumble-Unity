@@ -214,10 +214,10 @@ namespace Mumble
 
             try
             {
-                if (networkStream == null)
-                {
-                    return false;
-                }
+                // if (networkStream == null)
+                // {
+                //     return false;
+                // }
                 if (!networkStream.DataAvailable)
                 {
                     return false;

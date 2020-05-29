@@ -392,15 +392,15 @@ namespace Mumble
                 case SpeakerCreationMode.ALL:
                     return true;
                 case SpeakerCreationMode.IN_ROOM:
-                    return other.ChannelId == OurUserState.ChannelId
-                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId]);
+                    return other.ChannelId == OurUserState.ChannelId; /*
+                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId]);*/
                 case SpeakerCreationMode.IN_ROOM_NOT_SERVER_MUTED:
-                    return (other.ChannelId == OurUserState.ChannelId
-                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId]))
+                    return (other.ChannelId == OurUserState.ChannelId/*
+                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId])*/)
                         && !other.Mute;
                 case SpeakerCreationMode.IN_ROOM_NO_MUTE:
-                    return (other.ChannelId == OurUserState.ChannelId
-                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId]))
+                    return (other.ChannelId == OurUserState.ChannelId/*
+                        || Channels[OurUserState.ChannelId].DoesShareAudio(Channels[other.ChannelId])*/)
                         && !other.Mute
                         && !other.SelfMute;
                 default:
@@ -465,10 +465,17 @@ namespace Mumble
             // TODO we should index more intelligently to speed this up
             foreach(KeyValuePair<uint, UserState> user in AllUsers)
             {
-                if(ShouldAddAudioPlayerForUser(user.Value))
-                    AddDecodingBuffer(user.Value);
-                else
-                    TryRemoveDecodingBuffer(user.Key);
+                try
+                {
+                    if(ShouldAddAudioPlayerForUser(user.Value))
+                        AddDecodingBuffer(user.Value);
+                    else
+                        TryRemoveDecodingBuffer(user.Key);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("Channel Dictionary Key not found for User: " + user.Value.UserId + " ChannelId: " + user.Value.ChannelId);
+                }
             }
         }
         
@@ -695,7 +702,7 @@ namespace Mumble
                 ChannelId = channel.ChannelId,
                 Actor = OurUserState.Session,
                 Session = OurUserState.Session,
-                SelfMute = (_pendingMute != null) ? _pendingMute.Value : OurUserState.SelfMute
+                SelfMute = _pendingMute ?? OurUserState.SelfMute
             };
             _pendingMute = null;
 
@@ -836,9 +843,8 @@ namespace Mumble
             foreach(KeyValuePair<uint, Channel> kvp in Channels)
                 kvp.Value.UpdateSharedAudioChannels(Channels);
 
-            if (!isExistingChannel
-                && OnChannelAddedThreaded != null)
-                OnChannelAddedThreaded(channel);
+            if (!isExistingChannel)
+                OnChannelAddedThreaded?.Invoke(channel);
         }
         internal void RemoveChannel(uint channelIdToRemove)
         {

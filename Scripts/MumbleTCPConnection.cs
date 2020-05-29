@@ -270,7 +270,7 @@ namespace Mumble
                             //Debug.Log("Got codec version");
                             break;
                         case MessageType.ChannelState:
-                            ChannelState ChannelState = (ChannelState) MyProto.DeserializeWithLengthPrefix(_ssl, null,
+                            ChannelState channelState = (ChannelState) MyProto.DeserializeWithLengthPrefix(_ssl, null,
                                 typeof(ChannelState),
                                 PrefixStyle.Fixed32BigEndian, 0);
                             /*
@@ -281,7 +281,7 @@ namespace Mumble
                             Debug.Log("Channel state Parent = " + ChannelState.parent);
                             Debug.Log("Channel state Description = " + ChannelState.description);
                             */
-                            _mumbleClient.AddChannel(ChannelState);
+                            _mumbleClient.AddChannel(channelState);
                             break;
                         case MessageType.PermissionQuery:
                             _mumbleClient.PermissionQuery = (PermissionQuery) MyProto.DeserializeWithLengthPrefix(_ssl,

@@ -2,6 +2,7 @@
 using System.Collections;
 using Arthur.Client.Controllers;
 using Arthur.Client.EventSystem.VRModelSystem;
+using Arthur.Client.UI;
 using MEC;
 using UnityEngine.Android;
 
@@ -317,7 +318,10 @@ namespace Mumble
             _secondsWithoutMicSamples = 0;
             _sampleNumberOfLastMinAmplitudeVoice = int.MinValue;
             isRecording = true;
-            _mumbleClient.SetSelfMute(false);
+            bool isMuted = GameUniversalMenu.instance.audioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn ||
+                        InGameViewerUI.Instance.AudioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn;
+            _mumbleClient.SetSelfMute(isMuted);
+            ArNotificationManager.Instance.UpdateMutedState(isMuted);
         }
         public void StopSendingAudio()
         {

@@ -13,6 +13,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using Arthur.Client.Controllers;
+using Arthur.Client.Networking;
 using Arthur.Common.Utilities;
 using MEC;
 using ModestTree;
@@ -185,11 +186,25 @@ public class ARMumbleController : MonoBehaviour {
         ArNotificationManager.Instance.HideAudioReconnectingPopup();
         //isJoinedChannel = false;
         _clientState = State.Connected;
+
+        StartCoroutine(OnConnectedJoinChannel());
+        /*
         StartCoroutine( JoinChannel(ChannelToJoin));
         StartMicrophone();
         //_mumbleClient.SetSelfMute(true);
 
         StartCoroutine(RefreshUserState());
+        */
+
+    }
+    
+    private IEnumerator OnConnectedJoinChannel()
+    {
+        yield return JoinChannel(ChannelToJoin);
+        StartMicrophone();
+        //_mumbleClient.SetSelfMute(true);
+
+        yield return RefreshUserState();
     }
 
     private void OnDisconnected()
@@ -311,6 +326,7 @@ public class ARMumbleController : MonoBehaviour {
                     if (!_mumbleClient.IsSelfMuted())
                     {
                         _mumbleClient.SetSelfMute(true);
+                        yield return Timing.WaitForSeconds(0.5f);
                         _mumbleClient.SetSelfMute(false);
                     }
                 }
@@ -321,6 +337,7 @@ public class ARMumbleController : MonoBehaviour {
                     if (!_mumbleClient.IsSelfMuted())
                     {
                         _mumbleClient.SetSelfMute(true);
+                        yield return Timing.WaitForSeconds(0.5f);
                         _mumbleClient.SetSelfMute(false);
                     }
                 }
@@ -469,9 +486,15 @@ public class ARMumbleController : MonoBehaviour {
 
     IEnumerator<float> JoinChannel(string channel)
     {
+        _mumbleClient.SetSelfMute(true);//Mute until Channel Joined
         while (!isJoinedChannel)
         {
-            isJoinedChannel = _mumbleClient.JoinChannel(channel);   
+            isJoinedChannel = _mumbleClient.JoinChannel(channel);
+            if (!isJoinedChannel)
+            {
+                Debug.LogError("Channel not found, Sending Request to server to create channel");
+                ConnectionManager.Instance.CreateMumbleChannel(channel);
+            }
             yield return Timing.WaitForSeconds(1);
         }
     }

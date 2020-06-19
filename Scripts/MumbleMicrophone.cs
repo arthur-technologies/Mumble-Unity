@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using Arthur.Client.Constants;
 using Arthur.Client.Controllers;
 using Arthur.Client.EventSystem.VRModelSystem;
 using Arthur.Client.UI;
@@ -318,8 +319,9 @@ namespace Mumble
             _secondsWithoutMicSamples = 0;
             _sampleNumberOfLastMinAmplitudeVoice = int.MinValue;
             isRecording = true;
-            bool isMuted = GameUniversalMenu.instance.audioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn ||
-                        InGameViewerUI.Instance.AudioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn;
+            // bool isMuted = GameUniversalMenu.instance.audioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn ||
+            //             InGameViewerUI.Instance.AudioSettings.GetComponent<AudioSettingsUI>().muteBtn.isOn;
+            bool isMuted = PlayerPrefs.GetInt(AppConstants.PLAYERPREFS_MIC_MUTED, 0) == 1;
             _mumbleClient.SetSelfMute(isMuted);
             ArNotificationManager.Instance.UpdateMutedState(isMuted);
         }

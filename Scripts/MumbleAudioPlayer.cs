@@ -127,6 +127,15 @@ namespace Mumble
                 {
                     UserName = userStateName[0];
                     UserId = null;
+                    if (_audioSource)
+                    {
+                        _audioSource.spatialize = false;
+                    }
+                    else
+                    {
+                        _audioSource = GetComponent<AudioSource>();
+                        _audioSource.spatialize = false;
+                    }
                 }
             }
             else

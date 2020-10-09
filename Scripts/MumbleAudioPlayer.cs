@@ -66,6 +66,14 @@ namespace Mumble
             _pendingAudioVolume = -1f;
             
         }
+
+        public void SetBypassEffect(bool value)
+        {
+            if (_audioSource != null)
+            {
+                _audioSource.bypassEffects = value;
+            }
+        }
         public string GetUsername()
         {
             if (_mumbleClient == null)
@@ -115,6 +123,10 @@ namespace Mumble
                 .AddTo(disposables);
 
             var userStateName = GetUsername()?.Split('_');
+            foreach (var uname in userStateName)
+            {
+                Debug.LogError( "Username:"+uname);
+            }
             if (userStateName != null)
             {
                 if (userStateName.Length > 1)
@@ -162,7 +174,7 @@ namespace Mumble
                         followScript.target = memberItem.headTransform;
                         followScript.followPosition = true;
                         followScript.followRotation = true;
-                    memberItem.GetComponent<PlayerAvatarManager>().speaker = this;
+                    memberItem.GetComponent<PlayerAvatarManager>().Speaker = this;
                     yield break;
                 }
             }

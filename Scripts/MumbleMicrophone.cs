@@ -229,6 +229,7 @@ namespace Mumble
                             newData.PositionalDataLength = 0;
                         }
                         ArNotificationManager.Instance.FadeInMutedImage();
+                        ArNotificationManager.Instance.UpdateSpeakerCallout(true);
                         _mumbleClient.SendVoicePacket(newData);
                         if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
                         {
@@ -324,6 +325,7 @@ namespace Mumble
             bool isMuted = PlayerPrefs.GetInt(AppConstants.PLAYERPREFS_MIC_MUTED, 0) == 1;
             _mumbleClient.SetSelfMute(isMuted);
             ArNotificationManager.Instance.UpdateMutedState(isMuted);
+            Debug.LogError("Sending Voice Data");
         }
         public void StopSendingAudio()
         {

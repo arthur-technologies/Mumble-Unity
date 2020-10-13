@@ -67,11 +67,12 @@ namespace Mumble
             
         }
 
-        public void SetBypassEffect(bool value)
+        public void UpdateSpeakerDistance(bool value)
         {
             if (_audioSource != null)
             {
-                _audioSource.bypassEffects = value;
+                //_audioSource.bypassEffects = value;
+                _audioSource.maxDistance = value ? 2000f : 20f;
             }
         }
         public string GetUsername()
@@ -123,10 +124,6 @@ namespace Mumble
                 .AddTo(disposables);
 
             var userStateName = GetUsername()?.Split('_');
-            foreach (var uname in userStateName)
-            {
-                Debug.LogError( "Username:"+uname);
-            }
             if (userStateName != null)
             {
                 if (userStateName.Length > 1)

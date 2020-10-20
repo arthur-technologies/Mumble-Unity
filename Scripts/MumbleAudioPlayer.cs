@@ -72,7 +72,7 @@ namespace Mumble
             if (_audioSource != null)
             {
                 //_audioSource.bypassEffects = value;
-                _audioSource.maxDistance = value ? 2000f : 20f;
+                _audioSource.maxDistance = value ? 2000f : 30f;
             }
         }
         public string GetUsername()

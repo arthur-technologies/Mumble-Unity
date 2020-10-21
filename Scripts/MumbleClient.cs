@@ -761,7 +761,7 @@ namespace Mumble
             if (!OurUserState.ShouldSerializeSelfMute())
                 return false;
 
-            Debug.Log("Our Self Mute is " + OurUserState.SelfMute);
+            // Debug.Log("Our Self Mute is " + OurUserState.SelfMute);
             return OurUserState.SelfMute;
         }
         public bool SetOurComment(string newComment)

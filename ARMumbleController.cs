@@ -145,7 +145,7 @@ public class ARMumbleController : MonoBehaviour {
                     EventProcessor.Instance.QueueEvent(() =>
                     {
                         speakerCount++;
-                        Timing.RunCoroutine(ConnectAsync());
+                        Timing.RunCoroutine(ConnectAsync().CancelWith(gameObject));
                     });
                 }
                 else

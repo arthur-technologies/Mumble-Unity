@@ -66,6 +66,15 @@ namespace Mumble
             _pendingAudioVolume = -1f;
             
         }
+
+        public void UpdateSpeakerDistance(bool value)
+        {
+            if (_audioSource != null)
+            {
+                //_audioSource.bypassEffects = value;
+                _audioSource.maxDistance = value ? 2000f : 30f;
+            }
+        }
         public string GetUsername()
         {
             if (_mumbleClient == null)
@@ -162,7 +171,7 @@ namespace Mumble
                         followScript.target = memberItem.headTransform;
                         followScript.followPosition = true;
                         followScript.followRotation = true;
-                    memberItem.GetComponent<PlayerAvatarManager>().speaker = this;
+                    memberItem.GetComponent<PlayerAvatarManager>().Speaker = this;
                     yield break;
                 }
             }

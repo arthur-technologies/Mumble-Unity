@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using Arthur.Client.Constants;
 using Arthur.Client.Controllers;
@@ -82,6 +83,7 @@ namespace Mumble
         private WritePositionalData _writePositionalDataFunc = null;
         // How many seconds to wait before we consider the mic being disconnected
         const float MaxSecondsWithoutMicData = 1f;
+        private CoroutineHandle reconnectCouroutine;
         
         public void Initialize(MumbleClient mumbleClient)
         {
@@ -358,9 +360,14 @@ namespace Mumble
                     Debug.LogError("Woh Case ho Gaya hai!!");
                     //wohCaseWalaBool = true;
                     StopSendingAudio();
-                    Timing.RunCoroutine(MeetingController.instance.playerController.arMumbleClient.Reconnect().CancelWith(gameObject));
+                    reconnectCouroutine = Timing.RunCoroutine(MeetingController.instance.playerController.arMumbleClient.Reconnect());
                 }
             }
+        }
+
+        public void OnDestroy()
+        {
+            Timing.KillCoroutines(reconnectCouroutine);
         }
     }
 }

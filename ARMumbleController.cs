@@ -41,6 +41,7 @@ public class ARMumbleController : MonoBehaviour {
     private Exception _updateLoopThreadException = null;
 
     private State _clientState = State.Disconnected;
+    private CoroutineHandle connectAsyncCouroutine;
 
     public enum State
     {
@@ -145,7 +146,7 @@ public class ARMumbleController : MonoBehaviour {
                     EventProcessor.Instance.QueueEvent(() =>
                     {
                         speakerCount++;
-                        Timing.RunCoroutine(ConnectAsync().CancelWith(gameObject));
+                        connectAsyncCouroutine = Timing.RunCoroutine(ConnectAsync());
                     });
                 }
                 else
@@ -649,5 +650,10 @@ public class ARMumbleController : MonoBehaviour {
         }
         */
         
+    }
+
+    public void OnDestroy()
+    {
+        Timing.KillCoroutines(connectAsyncCouroutine);
     }
 }

@@ -288,7 +288,7 @@ namespace Mumble
                 _mumbleClient.SetSelfMute(true);
                 yield return new WaitForSeconds(0.5f);
                 _mumbleClient.SetSelfMute(false);
-                Invoke(nameof(SetRefreshingMicCooldown),10);
+                Invoke(nameof(SetRefreshingMicCooldown),30);
             }
         }
 

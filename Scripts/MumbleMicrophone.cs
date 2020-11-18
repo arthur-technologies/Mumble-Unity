@@ -270,12 +270,13 @@ namespace Mumble
             return 1;
         }
 
-        private bool isRefreshingMicCooldownComplete = false;
+        private bool isRefreshingMicCooldownComplete = true;
         void RefreshMic()
         {
             if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
             {
-                //Debug.Log("AutoRefresh");
+                Debug.Log("AutoRefresh");
+                isRefreshingMicCooldownComplete = false;
                 StartCoroutine(RefreshUserMic());
             }
         }
@@ -284,16 +285,21 @@ namespace Mumble
         {
             if (!_mumbleClient.IsSelfMuted())
             {
-                isRefreshingMicCooldownComplete = false;
+                Debug.Log("auto Mute-UnMute");
                 _mumbleClient.SetSelfMute(true);
                 yield return new WaitForSeconds(0.5f);
                 _mumbleClient.SetSelfMute(false);
-                Invoke(nameof(SetRefreshingMicCooldown),10);
+                Invoke(nameof(SetRefreshingMicCooldown),30);
+            }
+            else
+            {
+                isRefreshingMicCooldownComplete = true;
             }
         }
 
         void SetRefreshingMicCooldown()
         {
+            Debug.Log("SetRefreshingMicCooldown");
             isRefreshingMicCooldownComplete = true;
         }
 

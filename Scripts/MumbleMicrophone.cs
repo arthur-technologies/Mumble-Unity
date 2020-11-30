@@ -233,10 +233,10 @@ namespace Mumble
                         ArNotificationManager.Instance.FadeInMutedImage();
                         ArNotificationManager.Instance.UpdateSpeakerCallout(true);
                         _mumbleClient.SendVoicePacket(newData);
-                        if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
+                        if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic && isRefreshingMicCooldownComplete)
                         {
                             CancelInvoke(nameof(RefreshMic));
-                            Invoke(nameof(RefreshMic),2);
+                            Invoke(nameof(RefreshMic),1);
                         }
                     }
                     else
@@ -272,18 +272,40 @@ namespace Mumble
             return 1;
         }
 
+        private bool isRefreshingMicCooldownComplete = true;
         void RefreshMic()
         {
             if (ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
             {
                 Debug.Log("AutoRefresh");
-                /*if (!_mumbleClient.IsSelfMuted())
-                {
-                    _mumbleClient.SetSelfMute(true);
-                    _mumbleClient.SetSelfMute(false);
-                }*/
+                isRefreshingMicCooldownComplete = false;
+                StartCoroutine(RefreshUserMic());
             }
         }
+        
+        private IEnumerator RefreshUserMic()
+        {
+            if (!_mumbleClient.IsSelfMuted())
+            {
+                Debug.Log("auto Mute-UnMute");
+                _mumbleClient.SetSelfMute(true);
+                yield return new WaitForSeconds(0.5f);
+                _mumbleClient.SetSelfMute(false);
+                Invoke(nameof(SetRefreshingMicCooldown),30);
+            }
+            else
+            {
+                isRefreshingMicCooldownComplete = true;
+            }
+        }
+
+        void SetRefreshingMicCooldown()
+        {
+            Debug.Log("SetRefreshingMicCooldown");
+            isRefreshingMicCooldownComplete = true;
+        }
+
+        
         private static bool AmplitudeHigherThan(float minAmplitude, float[] pcm)
         {
             //return true;

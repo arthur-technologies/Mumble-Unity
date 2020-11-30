@@ -95,12 +95,8 @@ namespace Mumble
         }
         public byte[] GetUserTexture()
         {
-            if (_mumbleClient == null)
-                return null;
-            UserState state = _mumbleClient.GetUserFromSession(Session);
-            if (state == null)
-                return null;
-            return state.Texture;
+            UserState state = _mumbleClient?.GetUserFromSession(Session);
+            return state?.Texture;
         }
         
         CompositeDisposable disposables = new CompositeDisposable();

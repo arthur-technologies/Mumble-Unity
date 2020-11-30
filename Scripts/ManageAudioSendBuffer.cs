@@ -92,8 +92,8 @@ namespace Mumble
         }
         public PcmArray GetAvailablePcmArray()
         {
-            if (!ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
-            {
+            //if (!ArthurReferencesManager.Instance.arthurInputSettings.autoRefreshMic)
+            //{
                 foreach (PcmArray ray in _pcmArrays)
                 {
                     if (ray._refCount == 0)
@@ -103,7 +103,7 @@ namespace Mumble
                         return ray;
                     }
                 }
-            }
+            //}
 
             PcmArray newArray = null;
             if(_pcmArrays.Count > 100)

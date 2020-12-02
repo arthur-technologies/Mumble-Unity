@@ -5,7 +5,11 @@ using MumbleProto;
 using Version = MumbleProto.Version;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using Arthur.Client.Controllers;
+using ExitGames.Client.Photon;
 using UniRx.Diagnostics;
 
 namespace Mumble
@@ -188,13 +192,45 @@ namespace Mumble
             _debugValues = debugVals;
 
             if (async)
-                Dns.BeginGetHostAddresses(hostName, OnHostRecv, null);
+            {
+                //Dns.BeginGetHostAddresses(_hostName, OnHostRecv, null);
+                //Debug.Log("Resolving DNS: " + _hostName);
+                var dnsThread = new Thread(ResolveHostName);
+                dnsThread.Start();
+            }
             else
             {
                 IPAddress[] addresses = Dns.GetHostAddresses(hostName);
                 Init(addresses);
             }
         }
+
+        private void ResolveHostName()
+        {
+            try
+            {
+                Debug.Log("Resolving DNS: " + _hostName);
+                Dns.BeginGetHostAddresses(_hostName, OnHostRecv, null);
+            }
+            catch (Exception e)
+            {
+                if (e.InnerException is SocketException)
+                {
+                    Thread.Sleep(1000);    
+                    Debug.LogException(e);
+                    ResolveHostName();
+                }
+                else
+                {
+                    Thread.Sleep(1000);    
+                    Debug.LogException(e);
+                    ResolveHostName();
+                }
+
+                //return false;
+            }
+        }
+
         DateTime _lastSentPing = DateTime.MinValue;
         private static double PING_DELAY_MILLISECONDS = 5000;
 
@@ -251,6 +287,10 @@ namespace Mumble
         private void OnHostRecv(IAsyncResult result)
         {
             IPAddress[] addresses = Dns.EndGetHostAddresses(result);
+            foreach (var ipAddress in addresses)
+            {
+                Debug.Log("Resolved Address: " + ipAddress);
+            }
             Init(addresses);
         }
         public IEnumerator AddMumbleMic(MumbleMicrophone newMic)

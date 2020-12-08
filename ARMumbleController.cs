@@ -114,6 +114,8 @@ public class ARMumbleController : MonoBehaviour {
 
     private void ResetMumbleClient()
     {
+        _mumbleClient?.Close();
+
         int posLength = SendPosition ? 3 * sizeof(float) : 0;
         _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
             DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
@@ -398,7 +400,7 @@ public class ARMumbleController : MonoBehaviour {
                 }
                 else
                 {
-                    Debug.Log("MumbleCLient Not Initialized yet");
+                    Debug.Log("MumbleCLient Not Initialized yet --> In Disconnected");
                     ResetMumbleClient();
                     yield return Timing.WaitForSeconds(1);
                     StartCoroutine(ConnectAsync());
@@ -412,6 +414,7 @@ public class ARMumbleController : MonoBehaviour {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
                     {
+                        ResetMumbleClient();
                         yield return Timing.WaitForSeconds(1);
                     }
 
@@ -450,7 +453,10 @@ public class ARMumbleController : MonoBehaviour {
                 }
                 else
                 {
-                    Debug.Log("MumbleCLient Not Initialized yet");
+                    Debug.Log("MumbleCLient Not Initialized yet --> In Reconnecting");
+                    ResetMumbleClient();
+                    yield return Timing.WaitForSeconds(1);
+                    StartCoroutine(ConnectAsync());
                 }
                 break;
             default:

@@ -403,7 +403,7 @@ public class ARMumbleController : MonoBehaviour {
                     Debug.Log("MumbleCLient Not Initialized yet --> In Disconnected");
                     ResetMumbleClient();
                     yield return Timing.WaitForSeconds(1);
-                    StartCoroutine(ConnectAsync());
+                    StartUpdateLoop();
                 }
 
                 break;
@@ -456,7 +456,7 @@ public class ARMumbleController : MonoBehaviour {
                     Debug.Log("MumbleCLient Not Initialized yet --> In Reconnecting");
                     ResetMumbleClient();
                     yield return Timing.WaitForSeconds(1);
-                    StartCoroutine(ConnectAsync());
+                    StartUpdateLoop();
                 }
                 break;
             default:
@@ -497,7 +497,7 @@ public class ARMumbleController : MonoBehaviour {
 
     public void StartMicrophone()
     {
-        if(MyMumbleMic != null && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
+        if(MyMumbleMic != null && !MyMumbleMic.isRecording && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
         {
             StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
             if (SendPosition)

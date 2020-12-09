@@ -347,7 +347,7 @@ namespace Mumble
             bool isMuted = PlayerPrefs.GetInt(AppConstants.PLAYERPREFS_MIC_MUTED, 0) == 1;
             _mumbleClient.SetSelfMute(isMuted);
             ArNotificationManager.Instance.UpdateMutedState(isMuted);
-            Debug.LogError("Sending Voice Data");
+            Debug.Log("Sending Voice Data");
         }
         public void StopSendingAudio()
         {

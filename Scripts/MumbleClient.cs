@@ -129,7 +129,7 @@ namespace Mumble
         internal PermissionQuery PermissionQuery { get; set; }
         internal ServerConfig ServerConfig { get; set; }
 
-        public int EncoderSampleRate { get; private set; }
+        public int EncoderSampleRate = -1;
         public int NumSamplesPerOutgoingPacket { get; private set; }
 
         //The Mumble version of this integration
@@ -313,11 +313,17 @@ namespace Mumble
             {
                 yield break; // No Permission get Permission First
             }
-            _mumbleMic.StartSendingAudio(EncoderSampleRate);
-            
             NumSamplesPerOutgoingPacket = MumbleConstants.NUM_FRAMES_PER_OUTGOING_PACKET * EncoderSampleRate / 100;
-            _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
+            
+            InitEncoderBuffer();
         }
+
+        public void InitEncoderBuffer()
+        {
+            _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
+            _mumbleMic.StartSendingAudio(EncoderSampleRate);
+        }
+        
         internal PcmArray GetAvailablePcmArray()
         {
             return _manageSendBuffer.GetAvailablePcmArray();
@@ -390,14 +396,22 @@ namespace Mumble
 
             try
             {
-                // Create the audio player if the user is in the same room, and is not muted
-                if(ShouldAddAudioPlayerForUser(userState))
+                if (!isOurUser)
                 {
-                    AddDecodingBuffer(userState);
-                }else
+                    // Create the audio player if the user is in the same room, and is not muted
+                    if (ShouldAddAudioPlayerForUser(userState))
+                    {
+                        AddDecodingBuffer(userState);
+                    }
+                    else
+                    {
+                        // Otherwise remove the audio decoding buffer and audioPlayer if it exists
+                        TryRemoveDecodingBuffer(userState.Session);
+                    }
+                }
+                else
                 {
-                    // Otherwise remove the audio decoding buffer and audioPlayer if it exists
-                    TryRemoveDecodingBuffer(userState.Session);
+                    Debug.Log("AddOrUpdateUser -> Ignoring Decoder for Self");
                 }
             }
             catch (Exception e)
@@ -502,15 +516,24 @@ namespace Mumble
         }
         public void ReevaluateAllDecodingBuffers()
         {
+            
             // TODO we should index more intelligently to speed this up
             foreach(KeyValuePair<uint, UserState> user in AllUsers)
             {
                 try
                 {
-                    if(ShouldAddAudioPlayerForUser(user.Value))
-                        AddDecodingBuffer(user.Value);
+                    bool isOurUser = OurUserState != null && user.Value.Session == OurUserState.Session;
+                    if (!isOurUser)
+                    {
+                        if (ShouldAddAudioPlayerForUser(user.Value))
+                            AddDecodingBuffer(user.Value);
+                        else
+                            TryRemoveDecodingBuffer(user.Key);
+                    }
                     else
-                        TryRemoveDecodingBuffer(user.Key);
+                    {
+                        Debug.Log("ReevaluateAllDecodingBuffers -> Ignoring Decoder for Self");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -624,8 +647,8 @@ namespace Mumble
         {
             // Don't send anything out if we're muted
             if (OurUserState == null
-                || OurUserState.Mute
-                || OurUserState.SelfMute)
+                || OurUserState.Mute/*
+                || OurUserState.SelfMute*/)
             {
                 floatData.UnRef();
                 return;

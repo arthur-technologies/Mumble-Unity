@@ -497,12 +497,28 @@ public class ARMumbleController : MonoBehaviour {
 
     public void StartMicrophone()
     {
-        if(MyMumbleMic != null && !MyMumbleMic.isRecording && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
+        if(MyMumbleMic != null && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
         {
-            StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
-            if (SendPosition)
-                MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
-            MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
+            if (!MyMumbleMic.isRecording)
+            {
+                //MyMumbleMic.StopSendingAudio();
+                if (_mumbleClient.EncoderSampleRate == -1)
+                {
+                    StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
+                    if (SendPosition)
+                        MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
+                    MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
+                }
+                else
+                {
+                    Debug.LogError("--> StartMicrophone || Mic Already Initialized Just Start Sending Audio");
+                    _mumbleClient.InitEncoderBuffer();
+                }
+            }
+            else
+            {
+                Debug.LogError("--> StartMicrophone || Already recording");
+            }
         }
         else
         {

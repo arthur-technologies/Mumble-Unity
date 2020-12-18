@@ -113,6 +113,20 @@ public class ARMumbleController : MonoBehaviour {
 #endif
     }
 
+    private void ResetMumbleClient()
+    {
+        _mumbleClient?.Close();
+
+        int posLength = SendPosition ? 3 * sizeof(float) : 0;
+        _mumbleClient = new MumbleClient(HostName, Port, CreateMumbleAudioPlayerFromPrefab,
+            DestroyMumbleAudioPlayer, OnOtherUserStateChange, ConnectAsyncronously,
+            SpeakerCreationMode.IN_ROOM_NO_MUTE, DebuggingVariables, posLength)
+        {
+            OnDisconnected = OnDisconnected,
+            OnConnected = OnConnected
+        };
+    }
+
     public IEnumerator<float> Reconnect()
     {
         _mumbleClient.OnConnectionDisconnect();
@@ -349,7 +363,12 @@ public class ARMumbleController : MonoBehaviour {
                 {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
+                    {
+                        Debug.Log("Waiting for mumble client to get ready");
+                        ResetMumbleClient();
                         yield return Timing.WaitForSeconds(1);
+                    }
+
                     Debug.Log("Will now connect");
                     yield return Timing.WaitForSeconds(0.5f);
                     Username = Username.Split('-')[0] + "-" +speakerCount;
@@ -382,7 +401,10 @@ public class ARMumbleController : MonoBehaviour {
                 }
                 else
                 {
-                    Debug.Log("MumbleCLient Not Initialized yet");
+                    Debug.Log("MumbleCLient Not Initialized yet --> In Disconnected");
+                    ResetMumbleClient();
+                    yield return Timing.WaitForSeconds(1);
+                    StartUpdateLoop();
                 }
 
                 break;
@@ -393,6 +415,7 @@ public class ARMumbleController : MonoBehaviour {
                     _clientState = State.Connecting;
                     while (!_mumbleClient.ReadyToConnect)
                     {
+                        ResetMumbleClient();
                         yield return Timing.WaitForSeconds(1);
                     }
 
@@ -431,7 +454,10 @@ public class ARMumbleController : MonoBehaviour {
                 }
                 else
                 {
-                    Debug.Log("MumbleCLient Not Initialized yet");
+                    Debug.Log("MumbleCLient Not Initialized yet --> In Reconnecting");
+                    ResetMumbleClient();
+                    yield return Timing.WaitForSeconds(1);
+                    StartUpdateLoop();
                 }
                 break;
             default:
@@ -474,10 +500,26 @@ public class ARMumbleController : MonoBehaviour {
     {
         if(MyMumbleMic != null && MeetingController.instance.playerController.IsMicrophoneAccessGranted)
         {
-            StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
-            if (SendPosition)
-                MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
-            MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
+            if (!MyMumbleMic.isRecording)
+            {
+                //MyMumbleMic.StopSendingAudio();
+                if (_mumbleClient.EncoderSampleRate == -1)
+                {
+                    StartCoroutine(_mumbleClient.AddMumbleMic(MyMumbleMic));
+                    if (SendPosition)
+                        MyMumbleMic.SetPositionalDataFunction(WritePositionalData);
+                    MyMumbleMic.OnMicDisconnect += OnMicDisconnected;
+                }
+                else
+                {
+                    Debug.LogError("--> StartMicrophone || Mic Already Initialized Just Start Sending Audio");
+                    _mumbleClient.InitEncoderBuffer();
+                }
+            }
+            else
+            {
+                Debug.LogError("--> StartMicrophone || Already recording");
+            }
         }
         else
         {

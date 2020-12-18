@@ -286,8 +286,10 @@ namespace Mumble
             {
                 Debug.Log("auto Mute-UnMute");
                 _mumbleClient.SetSelfMute(true);
+                PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,1);
                 yield return new WaitForSeconds(0.5f);
                 _mumbleClient.SetSelfMute(false);
+                PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,0);
                 Invoke(nameof(SetRefreshingMicCooldown),30);
             }
             else

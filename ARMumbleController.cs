@@ -12,6 +12,7 @@ using UnityEditor;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using Arthur.Client.Constants;
 using Arthur.Client.Controllers;
 using Arthur.Client.Networking;
 using Arthur.Common.Utilities;
@@ -218,7 +219,7 @@ public class ARMumbleController : MonoBehaviour {
         StartMicrophone();
         //_mumbleClient.SetSelfMute(true);
 
-        yield return RefreshUserState();
+        //yield return RefreshUserState();
     }
 
     private void OnDisconnected()
@@ -272,13 +273,16 @@ public class ARMumbleController : MonoBehaviour {
         }*/
     }
 
-    private IEnumerator RefreshUserState()
+    public IEnumerator RefreshUserState()
     {
-        if (!_mumbleClient.IsSelfMuted())
+        if (!_mumbleClient.IsSelfMuted() || PlayerPrefs.GetInt(AppConstants.PLAYERPREFS_MIC_MUTED) == 0)
         {
             _mumbleClient.SetSelfMute(true);
+            PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,1);
             yield return new WaitForSeconds(0.5f);
             _mumbleClient.SetSelfMute(false);
+            PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,0);
+            ArNotificationManager.Instance.UpdateMutedState(false);
         }
     }
 
@@ -337,23 +341,13 @@ public class ARMumbleController : MonoBehaviour {
                     yield return Timing.WaitUntilDone(JoinChannel(ChannelToJoin));
                     
                     yield return Timing.WaitForSeconds(1);
-                    if (!_mumbleClient.IsSelfMuted())
-                    {
-                        _mumbleClient.SetSelfMute(true);
-                        yield return Timing.WaitForSeconds(0.5f);
-                        _mumbleClient.SetSelfMute(false);
-                    }
+                    StartCoroutine(RefreshUserState());
                 }
                 else
                 {
                     Debug.LogError("Channel Already Joined");
                     yield return Timing.WaitForSeconds(1);
-                    if (!_mumbleClient.IsSelfMuted())
-                    {
-                        _mumbleClient.SetSelfMute(true);
-                        yield return Timing.WaitForSeconds(0.5f);
-                        _mumbleClient.SetSelfMute(false);
-                    }
+                    StartCoroutine(RefreshUserState());
                 }
                 
                 break;
@@ -528,7 +522,9 @@ public class ARMumbleController : MonoBehaviour {
 
     IEnumerator<float> JoinChannel(string channel)
     {
-        _mumbleClient.SetSelfMute(true);//Mute until Channel Joined
+        //_mumbleClient.SetSelfMute(true);//Mute until Channel Joined
+        //PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,1);
+        
         while (!isJoinedChannel)
         {
             isJoinedChannel = _mumbleClient.JoinChannel(channel);

@@ -1,15 +1,11 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections;
 using System.Net;
 using MumbleProto;
 using Version = MumbleProto.Version;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Arthur.Client.Controllers;
-using ExitGames.Client.Photon;
 using UniRx.Diagnostics;
 
 namespace Mumble
@@ -129,7 +125,7 @@ namespace Mumble
         internal PermissionQuery PermissionQuery { get; set; }
         internal ServerConfig ServerConfig { get; set; }
 
-        public int EncoderSampleRate = -1;
+        public int EncoderSampleRate { get; private set; }
         public int NumSamplesPerOutgoingPacket { get; private set; }
 
         //The Mumble version of this integration
@@ -192,45 +188,13 @@ namespace Mumble
             _debugValues = debugVals;
 
             if (async)
-            {
-                //Dns.BeginGetHostAddresses(_hostName, OnHostRecv, null);
-                //Debug.Log("Resolving DNS: " + _hostName);
-                var dnsThread = new Thread(ResolveHostName);
-                dnsThread.Start();
-            }
+                Dns.BeginGetHostAddresses(hostName, OnHostRecv, null);
             else
             {
                 IPAddress[] addresses = Dns.GetHostAddresses(hostName);
                 Init(addresses);
             }
         }
-
-        private void ResolveHostName()
-        {
-            try
-            {
-                Debug.Log("Resolving DNS: " + _hostName);
-                Dns.BeginGetHostAddresses(_hostName, OnHostRecv, null);
-            }
-            catch (Exception e)
-            {
-                if (e.InnerException is SocketException)
-                {
-                    Thread.Sleep(1000);    
-                    Debug.LogException(e);
-                    ResolveHostName();
-                }
-                else
-                {
-                    Thread.Sleep(1000);    
-                    Debug.LogException(e);
-                    ResolveHostName();
-                }
-
-                //return false;
-            }
-        }
-
         DateTime _lastSentPing = DateTime.MinValue;
         private static double PING_DELAY_MILLISECONDS = 5000;
 
@@ -287,10 +251,6 @@ namespace Mumble
         private void OnHostRecv(IAsyncResult result)
         {
             IPAddress[] addresses = Dns.EndGetHostAddresses(result);
-            foreach (var ipAddress in addresses)
-            {
-                Debug.Log("Resolved Address: " + ipAddress);
-            }
             Init(addresses);
         }
         public IEnumerator AddMumbleMic(MumbleMicrophone newMic)
@@ -313,17 +273,11 @@ namespace Mumble
             {
                 yield break; // No Permission get Permission First
             }
-            NumSamplesPerOutgoingPacket = MumbleConstants.NUM_FRAMES_PER_OUTGOING_PACKET * EncoderSampleRate / 100;
-            
-            InitEncoderBuffer();
-        }
-
-        public void InitEncoderBuffer()
-        {
-            _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
             _mumbleMic.StartSendingAudio(EncoderSampleRate);
+            
+            NumSamplesPerOutgoingPacket = MumbleConstants.NUM_FRAMES_PER_OUTGOING_PACKET * EncoderSampleRate / 100;
+            _manageSendBuffer.InitForSampleRate(EncoderSampleRate);
         }
-        
         internal PcmArray GetAvailablePcmArray()
         {
             return _manageSendBuffer.GetAvailablePcmArray();
@@ -396,22 +350,14 @@ namespace Mumble
 
             try
             {
-                if (!isOurUser)
+                // Create the audio player if the user is in the same room, and is not muted
+                if(ShouldAddAudioPlayerForUser(userState))
                 {
-                    // Create the audio player if the user is in the same room, and is not muted
-                    if (ShouldAddAudioPlayerForUser(userState))
-                    {
-                        AddDecodingBuffer(userState);
-                    }
-                    else
-                    {
-                        // Otherwise remove the audio decoding buffer and audioPlayer if it exists
-                        TryRemoveDecodingBuffer(userState.Session);
-                    }
-                }
-                else
+                    AddDecodingBuffer(userState);
+                }else
                 {
-                    Debug.Log("AddOrUpdateUser -> Ignoring Decoder for Self");
+                    // Otherwise remove the audio decoding buffer and audioPlayer if it exists
+                    TryRemoveDecodingBuffer(userState.Session);
                 }
             }
             catch (Exception e)
@@ -516,24 +462,15 @@ namespace Mumble
         }
         public void ReevaluateAllDecodingBuffers()
         {
-            
             // TODO we should index more intelligently to speed this up
             foreach(KeyValuePair<uint, UserState> user in AllUsers)
             {
                 try
                 {
-                    bool isOurUser = OurUserState != null && user.Value.Session == OurUserState.Session;
-                    if (!isOurUser)
-                    {
-                        if (ShouldAddAudioPlayerForUser(user.Value))
-                            AddDecodingBuffer(user.Value);
-                        else
-                            TryRemoveDecodingBuffer(user.Key);
-                    }
+                    if(ShouldAddAudioPlayerForUser(user.Value))
+                        AddDecodingBuffer(user.Value);
                     else
-                    {
-                        Debug.Log("ReevaluateAllDecodingBuffers -> Ignoring Decoder for Self");
-                    }
+                        TryRemoveDecodingBuffer(user.Key);
                 }
                 catch (Exception e)
                 {
@@ -647,8 +584,7 @@ namespace Mumble
         {
             // Don't send anything out if we're muted
             if (OurUserState == null
-                || OurUserState.Mute/*
-                || OurUserState.SelfMute*/)
+                || OurUserState.Mute)
             {
                 floatData.UnRef();
                 return;

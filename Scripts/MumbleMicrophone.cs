@@ -1,15 +1,11 @@
-﻿using System;
-using UnityEngine;
+﻿﻿using UnityEngine;
 using System.Collections;
-using System.Diagnostics;
-using System.Threading;
 using Arthur.Client.Constants;
 using Arthur.Client.Controllers;
 using Arthur.Client.EventSystem.VRModelSystem;
 using Arthur.Client.UI;
 using MEC;
 using UnityEngine.Android;
-using Debug = UnityEngine.Debug;
 
 namespace Mumble
 {
@@ -64,7 +60,12 @@ namespace Mumble
         /// </summary>
         //const int NumRecordingSeconds = 1;
         const int NumRecordingSeconds = 5;
-        private int NumSamplesInMicBuffer => NumRecordingSeconds * _mumbleClient.EncoderSampleRate;
+        private int NumSamplesInMicBuffer {
+            get
+            {
+                return NumRecordingSeconds * _mumbleClient.EncoderSampleRate;
+            }
+        }
         public int NumSamplesPerOutgoingPacket { get; private set; }
         public AudioClip SendAudioClip { get; private set; }
 
@@ -286,10 +287,8 @@ namespace Mumble
             {
                 Debug.Log("auto Mute-UnMute");
                 _mumbleClient.SetSelfMute(true);
-                PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,1);
                 yield return new WaitForSeconds(0.5f);
                 _mumbleClient.SetSelfMute(false);
-                PlayerPrefs.SetInt(AppConstants.PLAYERPREFS_MIC_MUTED,0);
                 Invoke(nameof(SetRefreshingMicCooldown),30);
             }
             else
@@ -337,17 +336,6 @@ namespace Mumble
             }
             Debug.Log("Starting to send audio");
             SendAudioClip = Microphone.Start(_currentMic, true, NumRecordingSeconds, sampleRate);
-            
-            Stopwatch timer = Stopwatch.StartNew();
-            // Wait until the recording has started
-            while (!(Microphone.GetPosition(_currentMic) > 0) && timer.Elapsed.TotalMilliseconds < 1000) {
-                Thread.Sleep(50);
-            }
-            if (Microphone.GetPosition(_currentMic) <= 0)
-            {
-                throw new Exception("Timeout initializing microphone " + _currentMic);
-            }
-            
             _previousPosition = 0;
             _numTimesLooped = 0;
             _totalNumSamplesSent = 0;
@@ -366,16 +354,6 @@ namespace Mumble
             Debug.Log("Stopping sending audio");
             Microphone.End(_currentMic);
             _mumbleClient.StopSendingVoice();
-            isRecording = false;
-        }
-
-        public void StartRecording()
-        {
-            isRecording = true;
-        }
-
-        public void StopRecording()
-        {
             isRecording = false;
         }
 
